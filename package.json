@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-freya",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Custom nodes for Freya Vivarium Control System",
   "keywords": [
     "node-red",
@@ -12,7 +12,8 @@
     }
   },
   "files": [
-    "icons"
+    "icons",
+    "nodes"
   ],
   "dependencies": {},
   "author": "Sanne 'SpuQ' Santens",
