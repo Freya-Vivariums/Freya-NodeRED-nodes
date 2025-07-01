@@ -10,6 +10,9 @@
     "nodes": {
     }
   },
+  "files": [
+    "icons"
+  ],
   "dependencies": {},
   "author": "Sanne 'SpuQ' Santens",
   "license": "MIT"
