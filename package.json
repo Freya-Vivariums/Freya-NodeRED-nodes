@@ -1,0 +1,16 @@
+{
+  "name": "node-red-contrib-freya",
+  "version": "0.1.0",
+  "description": "Custom nodes for Freya Vivarium Control System",
+  "keywords": [
+    "node-red",
+    "node-red-node"
+  ],
+  "node-red": {
+    "nodes": {
+    }
+  },
+  "dependencies": {},
+  "author": "Sanne 'SpuQ' Santens",
+  "license": "MIT"
+}
