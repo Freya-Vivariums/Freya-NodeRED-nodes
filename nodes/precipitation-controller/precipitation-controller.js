@@ -1,5 +1,5 @@
 module.exports = function(RED) {
-  function TemperatureControllerNode(config) {
+  function PrecipitationControllerNode(config) {
     RED.nodes.createNode(this, config);
     const node = this;
     node.status({ fill:"green", shape:"dot", text:"running" });
@@ -8,5 +8,5 @@ module.exports = function(RED) {
     });
   }
 
-  RED.nodes.registerType("temperature controller", TemperatureControllerNode);
+  RED.nodes.registerType("precipitation controller", PrecipitationControllerNode);
 }
