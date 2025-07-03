@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-freya",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Custom nodes for Freya Vivarium Control System",
   "keywords": [
     "node-red",
@@ -8,7 +8,9 @@
   ],
   "node-red": {
     "nodes": {
-        "circadian-engine":"nodes/circadian-engine/circadian-engine.js"
+        "circadian-engine":"nodes/circadian-engine/circadian-engine.js",
+        "humidity-controller":"nodes/humidity-controller/humidity-controller.js",
+        "temperature-controller":"nodes/temperature-controller/temperature-controller.js"
     }
   },
   "files": [
