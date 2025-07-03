@@ -8,7 +8,7 @@
   ],
   "node-red": {
     "nodes": {
-        "circadian-engine":"nodes/circadian-core/circadian-core-node.js",
+        "circadian-core":"nodes/circadian-core/circadian-core-node.js",
         "humidity-controller":"nodes/humidity-controller/humidity-controller-node.js",
         "lighting-controller":"nodes/lighting-controller/lighting-controller-node.js",
         "precipitation-controller":"nodes/precipitation-controller/precipitation-controller-node.js",
