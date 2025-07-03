@@ -1,5 +1,5 @@
 module.exports = function(RED) {
-  function CircadianEngineNode(config) {
+  function CircadianCoreNode(config) {
     RED.nodes.createNode(this, config);
     const node = this;
     node.status({ fill:"green", shape:"dot", text:"running" });
@@ -8,5 +8,5 @@ module.exports = function(RED) {
     });
   }
 
-  RED.nodes.registerType("circadian engine", CircadianEngineNode);
+  RED.nodes.registerType("circadian core", CircadianCoreNode);
 }
