@@ -1,0 +1,26 @@
+<script type="text/javascript">
+  RED.nodes.registerType('temperature controller',{
+    category: 'Freya Vivarium',
+    color: "#A2CA6F",
+    defaults: {
+      name: {value:""}
+    },
+    inputs:1,
+    outputs:1,
+    icon: "temperature-half.svg",
+    label: function() {
+      return this.name || "Temperature Controller";
+    }
+  });
+</script>
+
+<script type="text/html" data-template-name="temperature controller">
+  <div class="form-row">
+    <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+</script>
+
+<script type="text/html" data-help-name="temperature controller">
+  <p>The temperature controller lorem ipsum ...</p>
+</script>
