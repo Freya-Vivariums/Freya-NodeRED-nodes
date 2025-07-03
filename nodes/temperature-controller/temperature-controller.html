@@ -5,8 +5,9 @@
     defaults: {
       name: {value:""}
     },
-    inputs:2,
+    inputs:1,
     outputs:2,
+    outputLabels:["temperature control", "status"],
     icon: "font-awesome/fa-thermometer-half",
     label: function() {
       return this.name || "Temperature Controller";
