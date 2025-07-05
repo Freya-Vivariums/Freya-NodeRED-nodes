@@ -15,12 +15,79 @@
   });
 </script>
 
+
 <script type="text/html" data-template-name="circadian core">
-  <div class="form-row">
-    <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name">
-  </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Circadian Core">
+    </div>
+    <hr/>
+    <div class="form-row">
+      <h2><i class="fa fa-map-marker"></i> Location Settings</h2>
+    </div>
+    <div class="form-row">
+        <label for="node-input-latitude">Latitude (°)</label>
+        <input type="number" id="node-input-latitude" placeholder="50.98">
+    </div>
+    <div class="form-row">
+        <label for="node-input-timezone">Timezone</label>
+        <input type="text" id="node-input-timezone" placeholder="UTC+2 Copenhagen, Brussels, Kampenhout">
+    </div>
+    <hr/>
+    <div class="form-row">
+        <a href="#" id="toggle-advanced" style="text-decoration:none; color:#C0504D;">
+            <i class="fa fa-caret-right"></i> Advanced settings
+        </a>
+    </div>
+    <!-- Advanced settings -->
+    <div id="advanced-settings" style="display:none;">
+        <div class="form-row">
+          <h2><i class="fa fa-globe"></i> Planetary settings</h2>
+        </div>
+        <div class="form-row">
+            <label for="node-input-axialTilt">Axial Tilt (°)</label>
+            <input type="number" id="node-input-axialTilt" placeholder="23.44">
+        </div>
+        <div class="form-row">
+            <label for="node-input-orbitalPeriod">Orbital Period (days)</label>
+            <input type="number" id="node-input-orbitalPeriod" placeholder="365.25">
+        </div>
+        <div class="form-row">
+            <label for="node-input-rotationalPeriod">Rotational Period (hours)</label>
+            <input type="number" id="node-input-rotationalPeriod" placeholder="24">
+        </div>
+        <hr/>
+        <div class="form-row">
+          <h2><i class="fa fa-clock-o"></i> Time</h2>
+        </div>
+        <div class="form-row">
+            <label for="node-input-timeScale">Time Scale</label>
+            <input type="number" id="node-input-timeScale" placeholder="1.0">
+        </div>
+        
+    </div>
+    <!--- END Advanced settings -->
+    <script>
+    $(function() {
+        $('#toggle-advanced').on('click', function(e) {
+            e.preventDefault();
+            var adv = $('#advanced-settings');
+            var icon = $(this).find('i');
+            if (adv.is(':visible')) {
+                adv.hide();
+                icon.removeClass('fa-caret-down').addClass('fa-caret-right');
+                $(this).contents().last()[0].textContent = ' Advanced settings';
+            } else {
+                adv.show();
+                icon.removeClass('fa-caret-right').addClass('fa-caret-down');
+                $(this).contents().last()[0].textContent = ' Advanced settings';
+            }
+        });
+    });
+    </script>
 </script>
+
+
 
 <script type="text/html" data-help-name="circadian core">
   <p>
