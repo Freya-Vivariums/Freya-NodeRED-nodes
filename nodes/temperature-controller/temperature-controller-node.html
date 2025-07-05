@@ -1,27 +1,50 @@
 <script type="text/javascript">
-  RED.nodes.registerType('temperature controller',{
+  RED.nodes.registerType('temperature-controller',{  
     category: 'Freya Vivariums',
     color: "#A2CA6F",
     defaults: {
-      name: {value:""}
+      name: {value:""},
+      setpoint: {value:"25", required:true, validate:RED.validators.number()},
+      kp: {value:"10", required:false, validate:RED.validators.number()}
     },
     inputs:1,
     outputs:2,
-    outputLabels:["control", "status"],
+    outputLabels:["control","status"],
     icon: "font-awesome/fa-thermometer-half",
     label: function() {
-      return this.name || "Temperature Controller";
+      return this.name||"Temperature Controller";
     }
   });
 </script>
 
-<script type="text/html" data-template-name="temperature controller">
+<script type="text/html" data-template-name="temperature-controller">
   <div class="form-row">
     <label for="node-input-name"><i class="icon-tag"></i> Name</label>
     <input type="text" id="node-input-name" placeholder="Name">
   </div>
+  <div class="form-row">
+    <label for="node-input-setpoint"><i class="icon-cog"></i> Setpoint (°C)</label>
+    <input type="number" id="node-input-setpoint" placeholder="25">
+  </div>
+  <div class="form-row">
+    <label for="node-input-kp"><i class="icon-cogs"></i> Proportional Gain (Kp)</label>
+    <input type="number" id="node-input-kp" placeholder="10">
+  </div>
 </script>
 
-<script type="text/html" data-help-name="temperature controller">
-  <p>The temperature controller lorem ipsum ...</p>
+<script type="text/html" data-help-name="temperature-controller">
+  <p>The <b>Temperature Controller</b> node implements a proportional (P) controller.</p>
+  <p><b>Inputs:</b>
+    <ul>
+      <li><code>msg.topic == 'temp'</code> (payload: number) &rarr; sensor reading</li>
+      <li><code>msg.topic == 'config'</code> (payload: { setpoint, kp }) &rarr; runtime configuration</li>
+    </ul>
+  </p>
+  <p><b>Outputs:</b>
+    <ol>
+      <li><code>control</code>: <code>msg.payload.effort</code> (-100 to +100)</li>
+      <li><code>status</code>: <code>msg.payload</code> object with <code>level</code>, <code>message</code>, and optional <code>details</code></li>
+    </ol>
+  </p>
+  <p>Configure the <i>Setpoint</i> (°C) and <i>Proportional Gain</i> (Kp) in the node's edit dialog.</p>
 </script>
