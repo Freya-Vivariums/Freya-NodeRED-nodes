@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-freya",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "Custom nodes for Freya Vivarium Control System",
   "author": "Sanne 'SpuQ' Santens",
   "license": "MIT",
@@ -14,7 +14,8 @@
         "humidity-controller":"nodes/humidity-controller/humidity-controller-node.js",
         "lighting-controller":"nodes/lighting-controller/lighting-controller-node.js",
         "precipitation-controller":"nodes/precipitation-controller/precipitation-controller-node.js",
-        "temperature-controller":"nodes/temperature-controller/temperature-controller-node.js"
+        "temperature-controller":"nodes/temperature-controller/temperature-controller-node.js",
+        "status-aggregator":"nodes/status-aggregator/status-aggregator-node.js"
     }
   },
   "files": [

@@ -1,0 +1,29 @@
+<script type="text/javascript">
+  RED.nodes.registerType('status aggregator',{
+    category: 'Freya Vivariums',
+    color: "#00A29A",
+    defaults: {
+      name: {value:""}
+    },
+    inputs:1,
+    outputs:2,
+    outputLabels:["control", "status"],
+    icon: "font-awesome/fa-stethoscope",
+    label: function() {
+      return this.name || "Status Aggregator";
+    }
+  });
+</script>
+
+<script type="text/html" data-template-name="status aggregator">
+  <div class="form-row">
+    <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+</script>
+
+<script type="text/html" data-help-name="status aggregator">
+  <p>
+    The <strong>Status Aggregator</strong> collects, organizes, and evaluates health and diagnostic signals from the connected components.
+  </p>
+</script>
