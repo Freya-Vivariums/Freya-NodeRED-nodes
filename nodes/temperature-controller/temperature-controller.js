@@ -18,13 +18,17 @@ class TemperatureController extends EventEmitter {
         super();
 
         this.targetTemperature = 0;         // Desired temperature setpoint (°C)
+        this.maximumTemperature = 0;        // Absolute minimum temperature (°C)
+        this.maximumTemperature = 0;        // Absolute maximum temperature (°C)
         this.currentTemperature = 0;        // Latest measured temperature (°C)
+        
         this.proportionalGain =10;          // Proportional gain constant
         this.controlEffort = 0;             // Control effort output in range [-100, +100]
 
         this.isOpenLoop = true;             // Flag: true when running without sensor feedback (open-loop)
         this.controlLoopTimer = null;       // Interval handle for periodic control loop
         this.watchdogTimer = null;          // Timeout handle for sensor-update watchdog
+        this.watchdogTimeout = 60;          // Watchdog timout defaults to 60 sec
 
         this._startWatchdog();
         this.emitStatus('error',
@@ -45,7 +49,7 @@ class TemperatureController extends EventEmitter {
         this.setOpenLoopEnabled(false);
         this.watchdogTimer = setTimeout(() => {
             this.setOpenLoopEnabled(true);
-        }, 3 * 60 * 1000);
+        }, this.watchdogTimeout * 1000);
     }
 
     /**
@@ -94,16 +98,27 @@ class TemperatureController extends EventEmitter {
      * @param {number} [proportionalGain=10] - Proportional gain constant (Kp).
      * @returns {void}
      */
-    configure(targetTemperature, proportionalGain = 10) {
-        this.targetTemperature = targetTemperature;
-        this.proportionalGain   = proportionalGain;
-
-        if (this.controlLoopTimer) clearInterval(this.controlLoopTimer);
-        this.controlLoopTimer = setInterval(() => this._executeControlLoop(), 2000);
+    configure(minimumTemperature, maximumTemperature, proportionalGain = 10) {
+        this.proportionalGain = proportionalGain;
+        this.minimumTemperature = minimumTemperature;
+        this.maximumTemperature = maximumTemperature;
 
         this.emitStatus('ok',
                         'Controller configured',
                         `Setpoint=${this.targetTemperature}°C, Kp=${this.proportionalGain}`);
+    }
+
+    /**
+     * setSetpoint(targetTemperature)
+     * Configures the controller's setpoint.
+     * @param {number} targetTemperature - Desired temperature setpoint (°C).
+     * @returns {void}
+     */
+    setSetpoint(targetTemperature){
+        this.targetTemperature = targetTemperature;
+        this.emitStatus('ok',
+                        'Setpoint Updated',
+                        `Setpoint=${this.targetTemperature}°C)`);
     }
 
     /**

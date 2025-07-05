@@ -16,11 +16,12 @@ module.exports = function(RED) {
     // instantiate controller
     const controller = new TemperatureController();
 
-    // Configure initial setpoint and gain if provided
+    // Configure minimum and maximum temperature, and gain if provided
     if (config.setpoint !== undefined) {
       const kp = config.kp !== undefined ? parseFloat(config.kp) : undefined;
-      controller.configure(parseFloat(config.setpoint), kp);
-      node.status({ fill: 'green', shape: 'dot', text: `set to ${config.setpoint}°, Kp=${kp||controller.proportionalGain}` });
+      const minimumTemperature = config.minimumTemperature !== undefined ? parseFloat(minimumTemperature) : undefined;
+      const maximumTemperature = config.maximumTemperature !== undefined ? parseFloat(maximumTemperature) : undefined;
+      controller.configure( minimumTemperature, maximumTemperature, kp);
     }
 
     // Relay status events to Node-RED

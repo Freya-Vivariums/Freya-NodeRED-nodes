@@ -4,7 +4,8 @@
     color: "#A2CA6F",
     defaults: {
       name: {value:""},
-      setpoint: {value:"25", required:true, validate:RED.validators.number()},
+      minimumTemperature: {value:"25", required:true, validate:RED.validators.number()},
+      maximumTemperature: {value:"30", required:true, validate:RED.validators.number()},
       kp: {value:"10", required:false, validate:RED.validators.number()}
     },
     inputs:1,
@@ -22,10 +23,19 @@
     <label for="node-input-name"><i class="icon-tag"></i> Name</label>
     <input type="text" id="node-input-name" placeholder="Name">
   </div>
+  <hr/>
+  <h2>Extremities</h2>
+  <p>The absolute maximum ratings</p>
   <div class="form-row">
-    <label for="node-input-setpoint"><i class="icon-cog"></i> Setpoint (°C)</label>
-    <input type="number" id="node-input-setpoint" placeholder="25">
+    <label for="node-input-minimumTemperature"><i class="icon-cog"></i> Minimum (°C)</label>
+    <input type="number" id="node-input-minimumTemperature" placeholder="25">
   </div>
+  <div class="form-row">
+    <label for="node-input-maximumTemperature"><i class="icon-cog"></i> Maximum (°C)</label>
+    <input type="number" id="node-input-maximumTemperature" placeholder="30">
+  </div>
+  <hr/>
+  <h2>P-controller</h2>
   <div class="form-row">
     <label for="node-input-kp"><i class="icon-cogs"></i> Proportional Gain (Kp)</label>
     <input type="number" id="node-input-kp" placeholder="10">
