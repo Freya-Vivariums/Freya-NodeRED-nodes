@@ -56,5 +56,5 @@ module.exports = function(RED) {
     });
   }
 
-  RED.nodes.registerType('temperature-controller', TemperatureControllerNode);
+  RED.nodes.registerType('temperature controller', TemperatureControllerNode);
 };
