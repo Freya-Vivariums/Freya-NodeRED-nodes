@@ -6,10 +6,11 @@
 
 <br clear="right"/>
 
-## Install in Node-RED UI
-ToDo
+## Installation
+#### Node-RED flow editor
+Navigate to `Settings > Manage Palette`, then in the `Install` tab, search for `node-red-contrib-freya` and click the `Install` button.
 
-## Manual install
+## Manually using NPM
 On your device, navigate to the `nodered` folder, and run
 ```
 npm install node-red-contrib-freya
