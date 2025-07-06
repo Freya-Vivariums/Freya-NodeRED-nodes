@@ -1,0 +1,27 @@
+<script type="text/javascript">
+  RED.nodes.registerType('system actuators',{
+    category: 'Freya Vivariums',
+    color: "#70B62D",
+    defaults: {
+      name: {value:""}
+    },
+    inputs:1,
+    outputs:1,
+    outputLabels:["status"],
+    icon: "font-awesome/fa-microchip",
+    label: function() {
+      return this.name || "System Actuator";
+    }
+  });
+</script>
+
+<script type="text/html" data-template-name="system actuators">
+  <div class="form-row">
+    <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+</script>
+
+<script type="text/html" data-help-name="system actuators">
+  <p>The <strong>Freya System Actuators</strong> lorem ipsum ...</p>
+</script>

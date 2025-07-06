@@ -10,6 +10,8 @@
   ],
   "node-red": {
     "nodes": {
+        "environment-sensor":"nodes/environment-sensor/environment-sensor-node.js",
+        "system-actuator":"nodes/system-actuators/system-actuators-node.js",
         "circadian-core":"nodes/circadian-core/circadian-core-node.js",
         "humidity-controller":"nodes/humidity-controller/humidity-controller-node.js",
         "lighting-controller":"nodes/lighting-controller/lighting-controller-node.js",
