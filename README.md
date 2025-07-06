@@ -6,6 +6,8 @@
 
 <br clear="right"/>
 
+[![Node-RED](https://img.shields.io/badge/Node--RED-Freya-%23A2CA6F?logo=nodered)](https://flows.nodered.org/node/node-red-contrib-freya)
+
 ## Installation
 #### Node-RED flow editor
 Navigate to `Settings > Manage Palette`, then in the `Install` tab, search for `node-red-contrib-freya` and click the `Install` button.
