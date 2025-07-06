@@ -28,10 +28,12 @@
     <div class="form-row">
         <label for="node-input-latitude">Latitude (°)</label>
         <input type="number" id="node-input-latitude" placeholder="50.98">
+        <i class="fa fa-info-circle" title="The latitude of your simulated environment. Controls day length variation across the year. (e.g. 0° = Equator, 50° = Central Europe)"></i>
     </div>
     <div class="form-row">
         <label for="node-input-timezone">Timezone</label>
         <input type="text" id="node-input-timezone" placeholder="UTC+2 Copenhagen, Brussels, Kampenhout">
+        <i class="fa fa-info-circle" title="Timezone offset in hours. Aligns the simulated solar noon with your local wall clock."></i>
     </div>
     <hr/>
     <div class="form-row">
@@ -47,14 +49,17 @@
         <div class="form-row">
             <label for="node-input-axialTilt">Axial Tilt (°)</label>
             <input type="number" id="node-input-axialTilt" placeholder="23.44">
+            <i class="fa fa-info-circle" title="Angle between the rotation axis and orbital plane. Controls seasonal variation. Earth = 23.44°"></i>
         </div>
         <div class="form-row">
             <label for="node-input-orbitalPeriod">Orbital Period (days)</label>
             <input type="number" id="node-input-orbitalPeriod" placeholder="365.25">
+            <i class="fa fa-info-circle" title="Length of a full year (orbit around the sun). Earth = 365.25 days."></i>
         </div>
         <div class="form-row">
             <label for="node-input-rotationalPeriod">Rotational Period (hours)</label>
             <input type="number" id="node-input-rotationalPeriod" placeholder="24">
+            <i class="fa fa-info-circle" title="Length of a full day-night cycle. Earth = 24 hours."></i>
         </div>
         <hr/>
         <div class="form-row">
@@ -63,6 +68,7 @@
         <div class="form-row">
             <label for="node-input-timeScale">Time Scale</label>
             <input type="number" id="node-input-timeScale" placeholder="1.0">
+            <i class="fa fa-info-circle" title="Controls simulation speed. 1.0 = real time, 2.0 = twice as fast, 0.5 = half speed."></i>
         </div>
         
     </div>
