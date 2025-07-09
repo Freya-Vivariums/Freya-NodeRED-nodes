@@ -2,13 +2,20 @@ import { NodeAPI, NodeInitializer, Node, NodeMessageInFlow, NodeDef } from 'node
 import { ActuatorsDriver } from './system-actuators';
 
 interface NodeConfig extends NodeDef {
-
+  name: string;
+  actuator: string;
+  channel: string;
+  mode: string;
 }
 
 const systemActuators: NodeInitializer = (RED: NodeAPI) => {
   function SystemActuatorsNode( this: Node, config: NodeConfig ) {
     RED.nodes.createNode(this, config);
     const node = this;
+
+    const actuator = config.actuator;
+    const channel = parseInt(config.channel);
+    const mode = config.mode;
 
     const actuatorsDriver = new ActuatorsDriver();
 
@@ -28,17 +35,30 @@ const systemActuators: NodeInitializer = (RED: NodeAPI) => {
 
   node.on('input', async (msg: NodeMessageInFlow, send: (msg: any) => void, done: (err?: Error) => void) => {
     try {
-      if (msg.topic === 'set' && msg.payload != null && typeof msg.payload === 'object') {
-        const { channel, state } = msg.payload as { channel?: number; state?: boolean };
-        if (typeof channel === 'number' && typeof state === 'boolean') {
-          actuatorsDriver.setDigitalOutput(channel, state)
+      // First check if there's a payload that's an object
+      if ( msg.payload != null && typeof msg.payload === 'object') {
+        // Get the value of the object out that has the name of this actuator
+        const rawValue = (msg.payload as any)[actuator];
+        // If our raw value is not undefined, it's for us to process
+        if (typeof rawValue !== 'undefined') {
+          // When the operation mode is digital (on/off), treat everything
+          // that looks like 'true' as true. It's Node-RED, right!
+          if(mode === 'digital'){
+            const state = (rawValue === true || rawValue === "true" || rawValue === 1 || rawValue === "1" || rawValue === 'on')?true:false;
+            // Set the actual digital output
+            actuatorsDriver.setDigitalOutput(channel, state)
               .then((res)=>{
+                // The response from this method is a boolean: true for success, false for failed
                 if(res) node.status({ fill: 'green', shape: 'dot', text: `D${channel} turned ${state ? 'on' : 'off'}` });
                 else node.status({ fill: 'yellow', shape: 'dot', text: 'Invalid request' });
               })
               .catch((err)=>{
                   node.status({ fill: 'yellow', shape: 'dot', text: err });
               });
+            }
+            else if( mode === 'pwm'){
+              // TODO: implement other modes!
+            }
         }
       }
     } catch (err) {
