@@ -44,6 +44,11 @@ stty -echo
 echo ''
 echo ''
 
+
+# Build the package
+echo -e "\e[0;32mBuilding the package... \e[m"
+npm run build
+
 # Uninstall the previous version of the package
 echo -e "\e[0;32mRemoving the previous version of this package $PACKAGE... \e[m"
 sshpass -p ${PASSWORD} ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "cd $ROOTDIR; npm uninstall $PACKAGE"
@@ -54,7 +59,7 @@ sshpass -p ${PASSWORD} ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "mkdir ~/
 
 # Copy the relevant project files to the device
 echo -e '\e[0;32mCopying project to device...\e[m'
-sshpass -p ${PASSWORD} scp -r ./package.json ./nodes ./icons ${USER}@${HOST}:${PACKAGE}-temp/
+sshpass -p ${PASSWORD} scp -r ./build/* ${USER}@${HOST}:${PACKAGE}-temp/
 
 # Install the new version of the package
 echo -e "\e[0;32mInstalling the new version of this package $PACKAGE... \e[m"
