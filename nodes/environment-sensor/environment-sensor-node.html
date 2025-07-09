@@ -3,7 +3,9 @@
     category: 'Freya Vivariums',
     color: "#70B62D",
     defaults: {
-      name: {value:""}
+      name: {value:""},
+      variable: {value:""},
+      sampleinterval: {value:""}
     },
     inputs:0,
     outputs:2,
@@ -19,6 +21,25 @@
   <div class="form-row">
     <label for="node-input-name"><i class="icon-tag"></i> Name</label>
     <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+  <hr/>
+  <div class="form-row">
+    <label for="node-input-variable">Environment Variable</label>
+    <select id="node-input-variable">
+      <option value="" disabled selected>Select variable...</option>
+      <option value="temperature">Temperature (&deg;C)</option>
+      <option value="humidity">Relative Humidity (%)</option>
+      <option value="pressure">Barometric Pressure (hPa)</option>
+      <option value="light">Light Intensity (Lux)</option>
+      <option value="ultraviolet" disabled>Ultraviolet</option>
+      <option value="all">All measurements...</option>
+    </select>
+    <i class="fa fa-info-circle" title="The environment variable which we want to use"></i>
+  </div>
+  <div class="form-row">
+    <label for="node-input-sampleinterval">Sample Interval (s)</label>
+    <input type="number" id="node-input-sampleinterval" placeholder="5">
+    <i class="fa fa-info-circle" title="The sensor sample rate (seconds)"></i>
   </div>
 </script>
 
