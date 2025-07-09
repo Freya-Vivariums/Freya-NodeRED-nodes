@@ -8,6 +8,11 @@
     "node-red",
     "node-red-node"
   ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "bash ./scripts/build.sh",
+    "deploy": "bash ./scripts/deploy.sh"
+  },
   "node-red": {
     "nodes": {
         "environment-sensor":"nodes/environment-sensor/environment-sensor-node.js",
@@ -24,5 +29,9 @@
     "icons",
     "nodes"
   ],
-  "dependencies": {}
+  "dependencies": {},
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "ts-node": "^10.9.2"
+  }
 }

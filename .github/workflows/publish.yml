@@ -1,9 +1,9 @@
 name: Publish Node-RED node
 
 on:
-  push:
-    tags:
-      - 'v*'   # triggers on tags like v1.0.0
+  release:
+    types:
+      - created   # runs when a GitHub Release is created
 
 jobs:
   publish:
@@ -21,10 +21,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run a basic lint (optional)
-        run: npm install eslint && npx eslint *.js || true
+      - name: Build package
+        run: npm run build
 
       - name: Publish to npm
+        working-directory: build
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
