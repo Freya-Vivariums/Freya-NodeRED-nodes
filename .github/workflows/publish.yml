@@ -3,7 +3,7 @@ name: Publish Node-RED node
 on:
   release:
     types:
-      - created   # runs when a GitHub Release is created
+      - created
 
 jobs:
   publish:

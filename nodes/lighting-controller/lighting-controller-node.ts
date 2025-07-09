@@ -1,12 +1,25 @@
-module.exports = function(RED) {
-  function LightingControllerNode(config) {
+import { NodeAPI, NodeInitializer, Node, NodeMessageInFlow, NodeDef } from 'node-red';
+
+interface NodeConfig extends NodeDef {
+
+}
+
+const lightingController: NodeInitializer = (RED: NodeAPI) => {
+  function LightingControllerNode( this: Node, config: NodeConfig ) {
     RED.nodes.createNode(this, config);
     const node = this;
-    node.status({ fill:"green", shape:"dot", text:"running" });
-    node.on('input', async function(msg) {
-      node.send(msg);
-    });
+
+    // indicate running status in the editor
+    node.status({ fill: 'green', shape: 'dot', text: 'running' });
+
+    node.on( 'input', async ( msg: NodeMessageInFlow, send: (msg: any) => void, done: (err?: Error) => void ) => {
+        send(msg);
+        done?.();
+      }
+    );
   }
 
-  RED.nodes.registerType("lighting controller", LightingControllerNode);
-}
+  RED.nodes.registerType('lighting controller', LightingControllerNode);
+};
+
+export = lightingController;

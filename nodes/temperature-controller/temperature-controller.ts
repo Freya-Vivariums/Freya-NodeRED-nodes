@@ -8,7 +8,7 @@
 
 const EventEmitter = require('events');
 
-class TemperatureController extends EventEmitter {
+export class TemperatureController extends EventEmitter {
     /**
      * constructor()
      * Initializes control parameters, operation mode, and watchdog timer.
@@ -44,7 +44,7 @@ class TemperatureController extends EventEmitter {
      * @private
      * @returns {void}
      */
-    _startWatchdog() {
+    _startWatchdog():void {
         if (this.watchdogTimer) clearTimeout(this.watchdogTimer);
         this.setOpenLoopEnabled(false);
         this.watchdogTimer = setTimeout(() => {
@@ -57,7 +57,7 @@ class TemperatureController extends EventEmitter {
      * Stops the control loop and watchdog, resets control effort, and emits an open-loop status.
      * @returns {void}
      */
-    clear() {
+    clear():void {
         if (this.controlLoopTimer) clearInterval(this.controlLoopTimer);
         if (this.watchdogTimer)    clearTimeout(this.watchdogTimer);
         this.controlEffort = 0;
@@ -72,7 +72,7 @@ class TemperatureController extends EventEmitter {
      * @param {number} temperature - The latest temperature measurement (°C).
      * @returns {void}
      */
-    updateTemperature(temperature) {
+    updateTemperature(temperature:number):void {
         this.currentTemperature = temperature;
         this._startWatchdog();
     }
@@ -83,7 +83,7 @@ class TemperatureController extends EventEmitter {
      * @returns {{ targetTemperature: number, currentTemperature: number, timestamp: number }}
      *   An object containing the target setpoint, current temperature, and UNIX timestamp.
      */
-    getCurrentReading() {
+    getCurrentReading():any {
         return {
             targetTemperature:  this.targetTemperature,
             currentTemperature: this.currentTemperature,
@@ -98,7 +98,7 @@ class TemperatureController extends EventEmitter {
      * @param {number} [proportionalGain=10] - Proportional gain constant (Kp).
      * @returns {void}
      */
-    configure(minimumTemperature, maximumTemperature, proportionalGain = 10) {
+    configure(minimumTemperature:number, maximumTemperature:number, proportionalGain = <number>10):void {
         this.proportionalGain = proportionalGain;
         this.minimumTemperature = minimumTemperature;
         this.maximumTemperature = maximumTemperature;
@@ -114,7 +114,7 @@ class TemperatureController extends EventEmitter {
      * @param {number} targetTemperature - Desired temperature setpoint (°C).
      * @returns {void}
      */
-    setSetpoint(targetTemperature){
+    setSetpoint(targetTemperature:number):void{
         this.targetTemperature = targetTemperature;
         this.emitStatus('ok',
                         'Setpoint Updated',
@@ -127,7 +127,7 @@ class TemperatureController extends EventEmitter {
      * @param {boolean} enabled - True to run without sensor feedback; false to use feedback.
      * @returns {void}
      */
-    setOpenLoopEnabled(enabled) {
+    setOpenLoopEnabled(enabled:boolean):void {
         this.isOpenLoop = enabled;
     }
 
@@ -139,7 +139,7 @@ class TemperatureController extends EventEmitter {
      * @param {string} [details] - Additional details or context.
      * @returns {void}
      */
-    emitStatus(level, message, details) {
+    emitStatus(level:string, message:string, details?:string|undefined):void {
         this.emit('status', { level, message, details });
     }
 
@@ -150,7 +150,7 @@ class TemperatureController extends EventEmitter {
      * @private
      * @returns {void}
      */
-    _executeControlLoop() {
+    _executeControlLoop():void {
         if (this.isOpenLoop) {
             this.controlEffort = 0;
             this.emitStatus('error',

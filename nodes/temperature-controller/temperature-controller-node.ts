@@ -5,44 +5,44 @@
  * Copyright (c) 2025 Sanne 'SpuQ' Santens.
  * Licensed under the MIT License. See the project's LICENSE file for details.
  */
+import { NodeAPI, NodeInitializer, Node, NodeMessageInFlow, NodeDef } from 'node-red';
+import { TemperatureController } from './temperature-controller';
 
-const TemperatureController = require('./temperature-controller').TemperatureController;
+interface NodeConfig extends NodeDef {
+  kp?: string;
+  minimumTemperature?: string;
+  maximumTemperature?: string;
+}
 
-module.exports = function(RED) {
-  function TemperatureControllerNode(config) {
+const temperatureController: NodeInitializer = (RED: NodeAPI) => {
+  function TemperatureControllerNode( this: Node, config: NodeConfig ) {
     RED.nodes.createNode(this, config);
     const node = this;
 
     // instantiate controller
     const controller = new TemperatureController();
 
-    // Configure minimum and maximum temperature, and gain if provided
-    if (config.setpoint !== undefined) {
-      const kp = config.kp !== undefined ? parseFloat(config.kp) : undefined;
-      const minimumTemperature = config.minimumTemperature !== undefined ? parseFloat(minimumTemperature) : undefined;
-      const maximumTemperature = config.maximumTemperature !== undefined ? parseFloat(maximumTemperature) : undefined;
-      controller.configure( minimumTemperature, maximumTemperature, kp);
-    }
-
     // Relay status events to Node-RED
-    controller.on('status', status => {
+    controller.on('status', (status:any) => {
       node.status({ fill: status.level === 'error' ? 'red' : 'green', shape: 'ring', text: status.message });
       node.send({ topic: 'status', payload: status });
     });
 
     // Relay controlOutput events
-    controller.on('controlOutput', effort => {
+    controller.on('controlOutput', (effort:any) => {
       node.send({ topic: 'control', payload: { effort } });
     });
 
-    // Handle incoming messages
-    node.on('input', msg => {
+    // indicate running status in the editor
+    node.status({ fill: 'green', shape: 'dot', text: 'running' });
+
+    node.on( 'input', async ( msg: NodeMessageInFlow, send: (msg: any) => void, done: (err?: Error) => void ) => {
       // Expect msg.topic to be 'temp' or 'config'
       if (msg.topic === 'temp' && typeof msg.payload === 'number') {
         controller.updateTemperature(msg.payload);
       }
       else if (msg.topic === 'config' && typeof msg.payload === 'object') {
-        const { setpoint, kp } = msg.payload;
+        const { setpoint, kp } = <any>msg.payload;
         controller.configure(parseFloat(setpoint), parseFloat(kp));
       }
       else {
@@ -51,11 +51,13 @@ module.exports = function(RED) {
     });
 
     // Clean up
-    node.on('close', done => {
+    node.on('close', (done:any) => {
       controller.clear();
       done();
     });
   }
 
-  RED.nodes.registerType('temperature controller', TemperatureControllerNode);
+  RED.nodes.registerType( 'temperature controller', TemperatureControllerNode );
 };
+
+export = temperatureController;
