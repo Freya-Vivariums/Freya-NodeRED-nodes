@@ -1,6 +1,11 @@
-/*
+/**
+ * @file environment-sensor.ts
+ * @module environment-sensor
+ * @description
  * Node.js/TypeScript client for the io.freya.EnvironmentSensorDriver D-Bus service
- * Requires: npm install dbus-native @types/dbus-native
+ *
+ * @copyright 2025 Sanne “SpuQ” Santens
+ * @license MIT
  */
 
 const dbus =  require('dbus-native');

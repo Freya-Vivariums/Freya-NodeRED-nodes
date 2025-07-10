@@ -1,3 +1,14 @@
+/**
+ * @file system-actuators-node.ts
+ * @module system-actuators-node
+ * @description
+ * Node-RED node that uses the `system actuators` library to communicate
+ * with Freya's System Actuators Driver over D-Bus.
+ *
+ * @copyright 2025 Sanne “SpuQ” Santens
+ * @license MIT
+ */
+
 import { NodeAPI, NodeInitializer, Node, NodeMessageInFlow, NodeDef } from 'node-red';
 import { ActuatorsDriver } from './system-actuators';
 

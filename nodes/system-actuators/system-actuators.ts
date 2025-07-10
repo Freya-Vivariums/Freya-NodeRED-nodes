@@ -1,6 +1,11 @@
-/*
+/**
+ * @file system-actuators.ts
+ * @module system-actuators
+ * @description
  * Node.js/TypeScript client for the io.freya.SystemActuatorsDriver D-Bus service
- * Requires: npm install dbus-native @types/dbus-native
+ *
+ * @copyright 2025 Sanne “SpuQ” Santens
+ * @license MIT
  */
 
 const dbus =  require('dbus-native');
