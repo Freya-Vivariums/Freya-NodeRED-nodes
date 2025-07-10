@@ -30,13 +30,9 @@ export class SensorDriver extends EventEmitter{
         /*
          *  Signal handlers
          */
-    
         this.iface.on('measurement', (type:string, value:string) => {
-            this.emit('measurement', {  topic:"measurement",
-                                        payload:{
-                                            [type]: parseFloat(value)
-                                        }
-                                    });
+            const parsedValue = isNaN(Number(value)) ? value : Number(value);
+            this.emit('measurement', { [type]: parsedValue });
         });
   }
 
