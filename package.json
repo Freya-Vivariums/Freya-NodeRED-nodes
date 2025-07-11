@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-freya-nodes",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "description": "Custom nodes for Freya Vivarium Control System",
   "author": "Sanne 'SpuQ' Santens",
   "license": "MIT",
@@ -24,7 +24,8 @@
     "build": "bash ./scripts/build.sh",
     "deploy": "bash ./scripts/deploy.sh && rm -rf build/"
   },
-  "node-red": {
+  "node-red":{
+    "version": ">=4.0.9",
     "nodes": {
       "environment-sensor": "nodes/environment-sensor/environment-sensor-node.js",
       "system-actuator": "nodes/system-actuators/system-actuators-node.js",
@@ -35,6 +36,9 @@
       "temperature-controller": "nodes/temperature-controller/temperature-controller-node.js",
       "status-aggregator": "nodes/status-aggregator/status-aggregator-node.js"
     }
+  },            
+  "engines": {
+    "node": ">=18.0.0"
   },
   "files": [
     "icons",
