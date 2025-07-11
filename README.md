@@ -6,16 +6,16 @@
 
 <br clear="right"/>
 
-[![Node-RED](https://img.shields.io/badge/Node--RED-Freya-%23A2CA6F?logo=nodered)](https://flows.nodered.org/node/node-red-contrib-freya)
+[![Node-RED](https://img.shields.io/badge/Node--RED-Freya-%23A2CA6F?logo=nodered)](https://flows.nodered.org/node/node-red-contrib-freya-nodes)
 
 ## Installation
 #### Node-RED flow editor
-Navigate to `Settings > Manage Palette`, then in the `Install` tab, search for `node-red-contrib-freya` and click the `Install` button.
+Navigate to `Settings > Manage Palette`, then in the `Install` tab, search for `node-red-contrib-freya-nodes` and click the `Install` button.
 
 #### Manually using NPM
 On your device, navigate to the `nodered` folder, and run
 ```
-npm install node-red-contrib-freya
+npm install node-red-contrib-freya-nodes
 ```
 
 ## License & Collaboration
