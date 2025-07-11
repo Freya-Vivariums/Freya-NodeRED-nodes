@@ -4,7 +4,7 @@
     color: "#70B62D",
     defaults: {
       name: {value:""},
-      variable: {value:""},
+      variable: {value:"all"},
       sampleinterval: {value:""}
     },
     inputs:0,
@@ -26,13 +26,15 @@
   <div class="form-row">
     <label for="node-input-variable">Environment Variable</label>
     <select id="node-input-variable">
-      <option value="" disabled selected>Select variable...</option>
-      <option value="temperature">Temperature (&deg;C)</option>
-      <option value="humidity">Relative Humidity (%)</option>
-      <option value="pressure">Barometric Pressure (hPa)</option>
-      <option value="light">Light Intensity (Lux)</option>
-      <option value="ultraviolet" disabled>Ultraviolet</option>
-      <option value="all">All measurements...</option>
+      <option value="all" selected>All measurements</option>
+      <option value="temperature">Temperature [&deg;C]</option>
+      <option value="humidity">Relative Humidity [%]</option>
+      <option value="airquality" disabled>Relative Air Quality [%]</option>
+      <option value="pressure">Barometric Pressure [hPa]</option>
+      <option value="light">Light Intensity [Lux]</option>
+      <option value="uva" disabled>UVA (320-400 nm) [µW/cm²]</option>
+      <option value="uvb" disabled>UVB (280-320 nm) [µW/cm²]</option>
+      <option value="uvc" disabled>UVC (200-280 nm) [µW/cm²]</option>
     </select>
     <i class="fa fa-info-circle" title="The environment variable which we want to use"></i>
   </div>
