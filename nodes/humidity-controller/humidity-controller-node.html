@@ -3,14 +3,49 @@
     category: 'Freya Vivariums',
     color: "#A2CA6F",
     defaults: {
-      name: {value:""}
+      name: {value:""},
+      deadband: {value: 2.0, required: true, validate: RED.validators.number()},
+      minimumHumidity: {value: 0.0, required: true, validate: RED.validators.number()},
+      maximumHumidity: {value: 100.0, required: true, validate: RED.validators.number()}
     },
     inputs:1,
     outputs:2,
-    outputLabels:["control", "status"],
+    outputLabels:["actuator commands", "status"],
     icon: "font-awesome/fa-tint",
     label: function() {
       return this.name || "Humidity Controller";
+    },
+    oneditprepare: function() {
+      // Validation for deadband
+      $("#node-input-deadband").on('input', function() {
+        const val = parseFloat($(this).val());
+        if (isNaN(val) || val < 0) {
+          $(this).addClass('input-error');
+        } else {
+          $(this).removeClass('input-error');
+        }
+      });
+      
+      // Validation for minimum humidity
+      $("#node-input-minimumHumidity").on('input', function() {
+        const val = parseFloat($(this).val());
+        if (isNaN(val) || val < 0 || val > 100) {
+          $(this).addClass('input-error');
+        } else {
+          $(this).removeClass('input-error');
+        }
+      });
+      
+      // Validation for maximum humidity
+      $("#node-input-maximumHumidity").on('input', function() {
+        const val = parseFloat($(this).val());
+        const min = parseFloat($("#node-input-minimumHumidity").val());
+        if (isNaN(val) || val < 0 || val > 100 || (!isNaN(min) && val <= min)) {
+          $(this).addClass('input-error');
+        } else {
+          $(this).removeClass('input-error');
+        }
+      });
     }
   });
 </script>
@@ -20,8 +55,59 @@
     <label for="node-input-name"><i class="icon-tag"></i> Name</label>
     <input type="text" id="node-input-name" placeholder="Name">
   </div>
+  
+  <div class="form-row">
+    <label for="node-input-deadband"><i class="fa fa-arrows-h"></i> Deadband (%)</label>
+    <input type="number" id="node-input-deadband" placeholder="2.0" step="0.1" min="0">
+    <div class="form-tips">Half-width around target humidity to prevent oscillation</div>
+  </div>
+  
+  <div class="form-row">
+    <label for="node-input-minimumHumidity"><i class="fa fa-thermometer-empty"></i> Minimum Humidity (%)</label>
+    <input type="number" id="node-input-minimumHumidity" placeholder="0.0" step="1" min="0" max="100">
+    <div class="form-tips">Safety floor - force humidification below this level</div>
+  </div>
+  
+  <div class="form-row">
+    <label for="node-input-maximumHumidity"><i class="fa fa-thermometer-full"></i> Maximum Humidity (%)</label>
+    <input type="number" id="node-input-maximumHumidity" placeholder="100.0" step="1" min="0" max="100">
+    <div class="form-tips">Safety ceiling - force dehumidification above this level</div>
+  </div>
 </script>
 
 <script type="text/html" data-help-name="humidity controller">
-  <p>The humidity controller lorem ipsum ...</p>
+  <p>Bang-bang humidity controller with deadband and safety overrides for vivarium environmental control.</p>
+  
+  <h3>Input</h3>
+  <dl class="message-properties">
+    <dt>Target Humidity <span class="property-type">number</span></dt>
+    <dd>Target humidity percentage from circadian core or other source</dd>
+    
+    <dt>Sensor Reading <span class="property-type">number</span></dt>
+    <dd>Current humidity reading from environment sensor with <code>msg.topic: "sensor"</code> and <code>msg.payload: number</code></dd>
+  </dl>
+  
+  <h3>Outputs</h3>
+  <dl class="message-properties">
+    <dt>Output 1: Actuator Commands <span class="property-type">object</span></dt>
+    <dd>Commands for actuators: <code>{humidifier: "on/off", dehumidifier: "on/off"}</code></dd>
+    
+    <dt>Output 2: Status <span class="property-type">object</span></dt>
+    <dd>Controller status including state, readings, safety overrides, and deadband</dd>
+  </dl>
+  
+  <h3>Control Logic</h3>
+  <ul>
+    <li><strong>Humidifying:</strong> When reading < target - deadband</li>
+    <li><strong>Dehumidifying:</strong> When reading > target + deadband</li>
+    <li><strong>Idle:</strong> When within deadband (maintains previous state)</li>
+    <li><strong>Safety Override:</strong> Force humidification below minimum or dehumidification above maximum</li>
+  </ul>
+  
+  <h3>Configuration</h3>
+  <ul>
+    <li><strong>Deadband:</strong> Half-width around target to prevent oscillation (default: 2.0%)</li>
+    <li><strong>Minimum Humidity:</strong> Safety floor for emergency humidification (default: 0%)</li>
+    <li><strong>Maximum Humidity:</strong> Safety ceiling for emergency dehumidification (default: 100%)</li>
+  </ul>
 </script>

@@ -1,0 +1,131 @@
+<script type="text/javascript">
+  RED.nodes.registerType('location-config', {
+    category: 'config',
+    defaults: {
+      name: { value: "" },
+      latitude: { value: 50.98, validate: RED.validators.number() },
+      longitude: { value: 4.32, validate: RED.validators.number() },
+      timezone: { value: "UTC+1" },
+      axialTilt: { value: 23.44, validate: RED.validators.number() },
+      orbitalPeriod: { value: 365.25, validate: RED.validators.number() },
+      rotationalPeriod: { value: 24, validate: RED.validators.number() },
+      timeScale: { value: 1.0, validate: RED.validators.number() }
+    },
+    label: function() {
+      return this.name || "Location Config";
+    },
+    icon: "font-awesome/fa-map-marker"
+  });
+</script>
+
+<script type="text/html" data-template-name="location-config">
+  <div class="form-row">
+    <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-config-input-name" placeholder="Location Config">
+  </div>
+  <hr/>
+  
+  <div class="form-row">
+    <h3><i class="fa fa-map-marker"></i> Geographic Location</h3>
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-latitude">Latitude (°)</label>
+    <input type="number" id="node-config-input-latitude" placeholder="50.98" step="0.01" min="-90" max="90">
+    <i class="fa fa-info-circle" title="The latitude of your location. Controls day length variation across the year. (e.g. 0° = Equator, 50° = Central Europe, -34° = Buenos Aires)"></i>
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-longitude">Longitude (°)</label>
+    <input type="number" id="node-config-input-longitude" placeholder="4.32" step="0.01" min="-180" max="180">
+    <i class="fa fa-info-circle" title="The longitude of your location. Used for precise solar calculations. (e.g. 0° = Greenwich, 4.32° = Brussels, -74° = New York)"></i>
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-timezone">Timezone</label>
+    <input type="text" id="node-config-input-timezone" placeholder="UTC+1">
+    <i class="fa fa-info-circle" title="Timezone offset from UTC. Aligns the simulated solar noon with your local wall clock. (e.g. UTC+1, UTC-5, UTC+9)"></i>
+  </div>
+  
+  <hr/>
+  <div class="form-row">
+    <a href="#" id="toggle-planetary" style="text-decoration:none; color:#C0504D;">
+      <i class="fa fa-caret-right"></i> Planetary Parameters
+    </a>
+  </div>
+  
+  <!-- Planetary settings -->
+  <div id="planetary-settings" style="display:none;">
+    <div class="form-row">
+      <h3><i class="fa fa-globe"></i> Planetary Settings</h3>
+      <p style="font-size: 12px; color: #666; margin: 5px 0;">
+        Advanced settings for simulating non-Earth environments or custom seasonal patterns.
+      </p>
+    </div>
+    <div class="form-row">
+      <label for="node-config-input-axialTilt">Axial Tilt (°)</label>
+      <input type="number" id="node-config-input-axialTilt" placeholder="23.44" step="0.01" min="0" max="90">
+      <i class="fa fa-info-circle" title="Angle between the rotation axis and orbital plane. Controls seasonal variation intensity. Earth = 23.44°, Mars = 25.19°, Jupiter = 3.13°"></i>
+    </div>
+    <div class="form-row">
+      <label for="node-config-input-orbitalPeriod">Orbital Period (days)</label>
+      <input type="number" id="node-config-input-orbitalPeriod" placeholder="365.25" step="0.01" min="1">
+      <i class="fa fa-info-circle" title="Length of a full year (orbit around the sun). Earth = 365.25 days, Mars = 687 days, Venus = 225 days"></i>
+    </div>
+    <div class="form-row">
+      <label for="node-config-input-rotationalPeriod">Rotational Period (hours)</label>
+      <input type="number" id="node-config-input-rotationalPeriod" placeholder="24" step="0.01" min="0.1">
+      <i class="fa fa-info-circle" title="Length of a full day-night cycle. Earth = 24 hours, Mars = 24.6 hours, Venus = 5832 hours"></i>
+    </div>
+    <div class="form-row">
+      <label for="node-config-input-timeScale">Time Scale</label>
+      <input type="number" id="node-config-input-timeScale" placeholder="1.0" step="0.1" min="0.1">
+      <i class="fa fa-info-circle" title="Time compression factor. 1.0 = real time, 4.0 = four day/night cycles per real day. All circadian nodes sharing this config run at the same simulated time."></i>
+    </div>
+  </div>
+  
+  <script>
+    $(function() {
+      $('#toggle-planetary').on('click', function(e) {
+        e.preventDefault();
+        var planetary = $('#planetary-settings');
+        var icon = $(this).find('i');
+        if (planetary.is(':visible')) {
+          planetary.hide();
+          icon.removeClass('fa-caret-down').addClass('fa-caret-right');
+          $(this).contents().last()[0].textContent = ' Planetary Parameters';
+        } else {
+          planetary.show();
+          icon.removeClass('fa-caret-right').addClass('fa-caret-down');
+          $(this).contents().last()[0].textContent = ' Planetary Parameters';
+        }
+      });
+    });
+  </script>
+</script>
+
+<script type="text/html" data-help-name="location-config">
+  <p>
+    The <strong>Location Configuration</strong> node stores geographic and planetary parameters 
+    that can be shared across multiple circadian rhythm nodes in your flow.
+  </p>
+  
+  <h3>Geographic Settings</h3>
+  <ul>
+    <li><strong>Latitude:</strong> Controls seasonal day length variation</li>
+    <li><strong>Longitude:</strong> Used for precise solar position calculations</li>
+    <li><strong>Timezone:</strong> Aligns simulation with local wall clock time</li>
+  </ul>
+  
+  <h3>Planetary Parameters</h3>
+  <p>
+    Advanced settings for simulating non-Earth environments or creating custom seasonal patterns:
+  </p>
+  <ul>
+    <li><strong>Axial Tilt:</strong> Controls intensity of seasonal variation</li>
+    <li><strong>Orbital Period:</strong> Length of the year cycle</li>
+    <li><strong>Rotational Period:</strong> Length of the day-night cycle</li>
+  </ul>
+  
+  <p>
+    This configuration can be referenced by multiple Circadian Core nodes, 
+    allowing consistent location settings across your entire vivarium control system.
+  </p>
+</script>

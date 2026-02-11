@@ -3,7 +3,11 @@
     category: 'Freya Vivariums',
     color: "#A2CA6F",
     defaults: {
-      name: {value:""}
+      name: {value:""},
+      locationConfig: {value:"", type:"location-config", required:true},
+      phaseShift: {value: 0.0, required: true, validate: RED.validators.number()},
+      tickInterval: {value: 60, required: true, validate: function(v) { return RED.validators.number()(v) && parseInt(v) >= 1; }},
+      decimals: {value: 1, required: true, validate: function(v) { return RED.validators.number()(v) && parseInt(v) >= 0 && parseInt(v) <= 4; }}
     },
     inputs:1,
     outputs:2,
@@ -23,74 +27,26 @@
     </div>
     <hr/>
     <div class="form-row">
-      <h2><i class="fa fa-map-marker"></i> Location Settings</h2>
-    </div>
-    <div class="form-row">
-        <label for="node-input-latitude">Latitude (°)</label>
-        <input type="number" id="node-input-latitude" placeholder="50.98">
-        <i class="fa fa-info-circle" title="The latitude of your simulated environment. Controls day length variation across the year. (e.g. 0° = Equator, 50° = Central Europe)"></i>
-    </div>
-    <div class="form-row">
-        <label for="node-input-timezone">Timezone</label>
-        <input type="text" id="node-input-timezone" placeholder="UTC+2 Copenhagen, Brussels, Kampenhout">
-        <i class="fa fa-info-circle" title="Timezone offset in hours. Aligns the simulated solar noon with your local wall clock."></i>
+        <label for="node-input-locationConfig"><i class="fa fa-map-marker"></i> Location Config</label>
+        <input type="text" id="node-input-locationConfig">
+        <i class="fa fa-info-circle" title="Select a location configuration node that defines geographic and planetary parameters."></i>
     </div>
     <hr/>
     <div class="form-row">
-        <a href="#" id="toggle-advanced" style="text-decoration:none; color:#C0504D;">
-            <i class="fa fa-caret-right"></i> Advanced settings
-        </a>
+        <label for="node-input-phaseShift"><i class="fa fa-clock-o"></i> Phase Shift (°)</label>
+        <input type="number" id="node-input-phaseShift" placeholder="0" step="1" min="-180" max="180">
+        <i class="fa fa-info-circle" title="Phase shift in degrees relative to solar cycle. 0° = peak at solar noon, 180° = peak at solar midnight, 30-45° = afternoon temperature lag."></i>
     </div>
-    <!-- Advanced settings -->
-    <div id="advanced-settings" style="display:none;">
-        <div class="form-row">
-          <h2><i class="fa fa-globe"></i> Planetary settings</h2>
-        </div>
-        <div class="form-row">
-            <label for="node-input-axialTilt">Axial Tilt (°)</label>
-            <input type="number" id="node-input-axialTilt" placeholder="23.44">
-            <i class="fa fa-info-circle" title="Angle between the rotation axis and orbital plane. Controls seasonal variation. Earth = 23.44°"></i>
-        </div>
-        <div class="form-row">
-            <label for="node-input-orbitalPeriod">Orbital Period (days)</label>
-            <input type="number" id="node-input-orbitalPeriod" placeholder="365.25">
-            <i class="fa fa-info-circle" title="Length of a full year (orbit around the sun). Earth = 365.25 days."></i>
-        </div>
-        <div class="form-row">
-            <label for="node-input-rotationalPeriod">Rotational Period (hours)</label>
-            <input type="number" id="node-input-rotationalPeriod" placeholder="24">
-            <i class="fa fa-info-circle" title="Length of a full day-night cycle. Earth = 24 hours."></i>
-        </div>
-        <hr/>
-        <div class="form-row">
-          <h2><i class="fa fa-clock-o"></i> Time</h2>
-        </div>
-        <div class="form-row">
-            <label for="node-input-timeScale">Time Scale</label>
-            <input type="number" id="node-input-timeScale" placeholder="1.0">
-            <i class="fa fa-info-circle" title="Controls simulation speed. 1.0 = real time, 2.0 = twice as fast, 0.5 = half speed."></i>
-        </div>
-        
+    <div class="form-row">
+        <label for="node-input-tickInterval"><i class="fa fa-clock-o"></i> Tick Interval (seconds)</label>
+        <input type="number" id="node-input-tickInterval" placeholder="60" step="1" min="1">
+        <div class="form-tips">How often to automatically recalculate and emit target values</div>
     </div>
-    <!--- END Advanced settings -->
-    <script>
-    $(function() {
-        $('#toggle-advanced').on('click', function(e) {
-            e.preventDefault();
-            var adv = $('#advanced-settings');
-            var icon = $(this).find('i');
-            if (adv.is(':visible')) {
-                adv.hide();
-                icon.removeClass('fa-caret-down').addClass('fa-caret-right');
-                $(this).contents().last()[0].textContent = ' Advanced settings';
-            } else {
-                adv.show();
-                icon.removeClass('fa-caret-right').addClass('fa-caret-down');
-                $(this).contents().last()[0].textContent = ' Advanced settings';
-            }
-        });
-    });
-    </script>
+    <div class="form-row">
+        <label for="node-input-decimals"><i class="fa fa-calculator"></i> Decimal Places</label>
+        <input type="number" id="node-input-decimals" placeholder="1" step="1" min="0" max="4">
+        <div class="form-tips">Number of decimal places to round the output target value (0-4)</div>
+    </div>
 </script>
 
 
@@ -98,7 +54,33 @@
 <script type="text/html" data-help-name="circadian core">
   <p>
     The <strong>Circadian Core</strong> dynamically computes target values for key vivarium variables 
-    (temperature, humidity, light), creating natural circadian and seasonal rhythms — 
-    while always enforcing explicit absolute safety constraints.
+    (temperature, humidity, light), creating natural circadian and seasonal rhythms based on 
+    astronomical calculations and geographic location.
+  </p>
+  
+  <h3>Configuration</h3>
+  <ul>
+    <li><strong>Location Config:</strong> Reference to a shared location configuration node</li>
+    <li><strong>Phase Shift:</strong> Degrees of lead/lag relative to solar cycle (0° = solar noon peak)</li>
+  </ul>
+  
+  <h3>Input</h3>
+  <p>
+    Send numeric values with <code>msg.topic</code> set to:
+  </p>
+  <ul>
+    <li><code>"absoluteMin"</code> or <code>"min"</code> - Minimum value (winter night)</li>
+    <li><code>"absoluteMax"</code> or <code>"max"</code> - Maximum value (summer day)</li>
+  </ul>
+  
+  <h3>Outputs</h3>
+  <ul>
+    <li><strong>Output 1:</strong> Target value - calculated setpoint based on current simulated time</li>
+    <li><strong>Output 2:</strong> Status - detailed information including simulated time and time scale</li>
+  </ul>
+  
+  <p>
+    The node combines seasonal and diurnal cycles to interpolate between absolute min/max values, 
+    automatically adjusting for day length variations, latitude effects, and custom planetary parameters.
   </p>
 </script>

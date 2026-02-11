@@ -4,13 +4,13 @@
     color: "#A2CA6F",
     defaults: {
       name: {value:""},
-      minimumTemperature: {value:"25", required:true, validate:RED.validators.number()},
-      maximumTemperature: {value:"30", required:true, validate:RED.validators.number()},
-      kp: {value:"10", required:false, validate:RED.validators.number()}
+      deadband: {value:1.0, required:true, validate:RED.validators.number()},
+      minimumTemperature: {value:10.0, required:true, validate:RED.validators.number()},
+      maximumTemperature: {value:50.0, required:true, validate:RED.validators.number()}
     },
     inputs:1,
     outputs:2,
-    outputLabels:["control","status"],
+    outputLabels:["actuator commands", "status"],
     icon: "font-awesome/fa-thermometer-half",
     label: function() {
       return this.name||"Temperature Controller";
@@ -20,41 +20,62 @@
 
 <script type="text/html" data-template-name="temperature controller">
   <div class="form-row">
-    <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Temperature Controller">
   </div>
   <hr/>
-  <h2><i class="fa fa-thermometer-full"></i> Extremes</h2>
-  <p>The absolute maximum ratings</p>
   <div class="form-row">
-    <label for="node-input-minimumTemperature"><i class="icon-cog"></i> Minimum (°C)</label>
-    <input type="number" id="node-input-minimumTemperature" placeholder="25">
+    <h3><i class="fa fa-adjust"></i> Control Settings</h3>
   </div>
   <div class="form-row">
-    <label for="node-input-maximumTemperature"><i class="icon-cog"></i> Maximum (°C)</label>
-    <input type="number" id="node-input-maximumTemperature" placeholder="30">
+    <label for="node-input-deadband">Deadband (°C)</label>
+    <input type="number" id="node-input-deadband" placeholder="1.0" step="0.1" min="0.1">
+    <i class="fa fa-info-circle" title="Half-width of the deadband around target. With target 25°C and deadband 1.0°C, controller is idle between 24-26°C."></i>
   </div>
   <hr/>
-  <h2><i class="fa fa-sliders"></i> P-controller</h2>
   <div class="form-row">
-    <label for="node-input-kp"><i class="icon-cogs"></i> Proportional Gain (Kp)</label>
-    <input type="number" id="node-input-kp" placeholder="10">
+    <h3><i class="fa fa-shield"></i> Safety Limits</h3>
+  </div>
+  <div class="form-row">
+    <label for="node-input-minimumTemperature">Minimum Temperature (°C)</label>
+    <input type="number" id="node-input-minimumTemperature" placeholder="10.0" step="0.1">
+    <i class="fa fa-info-circle" title="Absolute safety floor. Force heating if sensor reads below this, regardless of target."></i>
+  </div>
+  <div class="form-row">
+    <label for="node-input-maximumTemperature">Maximum Temperature (°C)</label>
+    <input type="number" id="node-input-maximumTemperature" placeholder="50.0" step="0.1">
+    <i class="fa fa-info-circle" title="Absolute safety ceiling. Force cooling if sensor reads above this, regardless of target."></i>
   </div>
 </script>
 
 <script type="text/html" data-help-name="temperature controller">
-  <p>The <b>Temperature Controller</b> node implements a proportional (P) controller.</p>
-  <p><b>Inputs:</b>
-    <ul>
-      <li><code>msg.topic == 'temp'</code> (payload: number) &rarr; sensor reading</li>
-      <li><code>msg.topic == 'config'</code> (payload: { setpoint, kp }) &rarr; runtime configuration</li>
-    </ul>
-  </p>
-  <p><b>Outputs:</b>
-    <ol>
-      <li><code>control</code>: <code>msg.payload.effort</code> (-100 to +100)</li>
-      <li><code>status</code>: <code>msg.payload</code> object with <code>level</code>, <code>message</code>, and optional <code>details</code></li>
-    </ol>
-  </p>
-  <p>Configure the <i>Setpoint</i> (°C) and <i>Proportional Gain</i> (Kp) in the node's edit dialog.</p>
+  <p>The <b>Temperature Controller</b> node implements bang-bang control with deadband for temperature regulation.</p>
+  
+  <h3>Input</h3>
+  <dl class="message-properties">
+    <dt>Target Temperature <span class="property-type">number</span></dt>
+    <dd>Target temperature in degrees Celsius from circadian core or other source</dd>
+    
+    <dt>Sensor Reading <span class="property-type">number</span></dt>
+    <dd>Current temperature reading from environment sensor with <code>msg.topic: "sensor"</code> and <code>msg.payload: number</code></dd>
+  </dl>
+  
+  <h3>Outputs</h3>
+  <ul>
+    <li><strong>Output 1 (Actuators):</strong> <code>msg.payload</code> (object) - actuator commands: <code>{ heater: "on/off", cooler: "on/off" }</code></li>
+    <li><strong>Output 2 (Status):</strong> Status information for aggregation</li>
+  </ul>
+  
+  <h3>Control Logic</h3>
+  <ul>
+    <li><strong>Heating:</strong> When reading &lt; target - deadband</li>
+    <li><strong>Cooling:</strong> When reading &gt; target + deadband</li>
+    <li><strong>Idle:</strong> When reading within deadband (maintains previous state)</li>
+  </ul>
+  
+  <h3>Safety Overrides</h3>
+  <ul>
+    <li><strong>Emergency Heating:</strong> Forces heating if reading &lt; minimum temperature</li>
+    <li><strong>Emergency Cooling:</strong> Forces cooling if reading &gt; maximum temperature</li>
+  </ul>
 </script>
