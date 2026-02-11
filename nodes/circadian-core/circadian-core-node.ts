@@ -1,11 +1,13 @@
 import { NodeAPI, NodeInitializer, Node, NodeMessageInFlow, NodeDef } from 'node-red';
 
-interface NodeConfig extends NodeDef {
+interface CircadianCoreNodeDef extends NodeDef {
   locationConfig: string;
   phaseShift: number;
   tickInterval: number;
   decimals: number;
 }
+
+
 
 interface CircadianState {
   absoluteMin?: number;
@@ -64,7 +66,7 @@ class AstronomicalCalculator {
 }
 
 const circadianCore: NodeInitializer = (RED: NodeAPI) => {
-  function CircadianCoreNode(this: Node, config: NodeConfig) {
+  function CircadianCoreNode(this: Node & { locationConfig?: any; phaseShift?: number; tickInterval?: number; decimals?: number }, config: CircadianCoreNodeDef) {
     RED.nodes.createNode(this, config);
     const node = this;
     const state: CircadianState = {};
@@ -137,7 +139,7 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
       if (hoursFromSolarNoon < -12) hoursFromSolarNoon += 24;
       
       // Diurnal angle with phase shift
-      const phaseShiftRad = AstronomicalCalculator.degreesToRadians(this.phaseShift);
+      const phaseShiftRad = AstronomicalCalculator.degreesToRadians(this.phaseShift || 0);
       const diurnalAngle = (2 * Math.PI * hoursFromSolarNoon / this.locationConfig.rotationalPeriod) + phaseShiftRad;
       
       // Only positive during daylight hours, scaled by day length
@@ -201,7 +203,7 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
       }
       
       // Use configured tick interval in real-time seconds
-      const intervalMs = this.tickInterval * 1000;
+      const intervalMs = (this.tickInterval || 60) * 1000;
       
       state.intervalId = setInterval(() => {
         // Only emit if we have both setpoints

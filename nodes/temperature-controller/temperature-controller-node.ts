@@ -7,7 +7,7 @@
  */
 import { NodeAPI, NodeInitializer, Node, NodeMessageInFlow, NodeDef } from 'node-red';
 
-interface NodeConfig extends NodeDef {
+interface TemperatureControllerNodeDef extends NodeDef {
   deadband: number;
   minimumTemperature: number;
   maximumTemperature: number;
@@ -21,7 +21,7 @@ interface ControllerState {
 }
 
 const temperatureController: NodeInitializer = (RED: NodeAPI) => {
-  function TemperatureControllerNode(this: Node, config: NodeConfig) {
+  function TemperatureControllerNode(this: Node & { deadband?: number; minimumTemperature?: number; maximumTemperature?: number }, config: TemperatureControllerNodeDef) {
     RED.nodes.createNode(this, config);
     const node = this;
     
@@ -47,13 +47,13 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
       const deadband = this.deadband;
       
       // Safety overrides take precedence
-      if (temp < this.minimumTemperature) {
+      if (temp < (this.minimumTemperature || 10.0)) {
         state.safetyOverride = 'min';
         state.currentState = 'heating';
         return { heater: 'on', cooler: 'off', state: 'heating', override: 'minimum temperature' };
       }
       
-      if (temp > this.maximumTemperature) {
+      if (temp > (this.maximumTemperature || 50.0)) {
         state.safetyOverride = 'max';
         state.currentState = 'cooling';
         return { heater: 'off', cooler: 'on', state: 'cooling', override: 'maximum temperature' };
@@ -63,10 +63,10 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
       state.safetyOverride = null;
       
       // Bang-bang control with deadband
-      if (temp < target - deadband) {
+      if (temp < target - (deadband || 1.0)) {
         state.currentState = 'heating';
         return { heater: 'on', cooler: 'off', state: 'heating' };
-      } else if (temp > target + deadband) {
+      } else if (temp > target + (deadband || 1.0)) {
         state.currentState = 'cooling';
         return { heater: 'off', cooler: 'on', state: 'cooling' };
       } else {

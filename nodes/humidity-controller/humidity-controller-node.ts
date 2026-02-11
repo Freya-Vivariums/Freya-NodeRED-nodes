@@ -1,6 +1,6 @@
 import { NodeAPI, NodeInitializer, Node, NodeMessageInFlow, NodeDef } from 'node-red';
 
-interface NodeConfig extends NodeDef {
+interface HumidityControllerNodeDef extends NodeDef {
   deadband: number;
   minimumHumidity: number;
   maximumHumidity: number;
@@ -14,7 +14,7 @@ interface ControllerState {
 }
 
 const humidityController: NodeInitializer = (RED: NodeAPI) => {
-  function HumidityControllerNode(this: Node, config: NodeConfig) {
+  function HumidityControllerNode(this: Node & { deadband?: number; minimumHumidity?: number; maximumHumidity?: number }, config: HumidityControllerNodeDef) {
     RED.nodes.createNode(this, config);
     const node = this;
     
@@ -40,13 +40,13 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
       const deadband = this.deadband;
       
       // Safety overrides take precedence
-      if (humidity < this.minimumHumidity) {
+      if (humidity < (this.minimumHumidity || 0.0)) {
         state.safetyOverride = 'min';
         state.currentState = 'humidifying';
         return { humidifier: 'on', dehumidifier: 'off', state: 'humidifying', override: 'minimum humidity' };
       }
       
-      if (humidity > this.maximumHumidity) {
+      if (humidity > (this.maximumHumidity || 100.0)) {
         state.safetyOverride = 'max';
         state.currentState = 'dehumidifying';
         return { humidifier: 'off', dehumidifier: 'on', state: 'dehumidifying', override: 'maximum humidity' };
@@ -56,10 +56,10 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
       state.safetyOverride = null;
       
       // Bang-bang control with deadband
-      if (humidity < target - deadband) {
+      if (humidity < target - (deadband || 2.0)) {
         state.currentState = 'humidifying';
         return { humidifier: 'on', dehumidifier: 'off', state: 'humidifying' };
-      } else if (humidity > target + deadband) {
+      } else if (humidity > target + (deadband || 2.0)) {
         state.currentState = 'dehumidifying';
         return { humidifier: 'off', dehumidifier: 'on', state: 'dehumidifying' };
       } else {

@@ -1,6 +1,6 @@
 import { NodeAPI, NodeInitializer, Node, NodeDef } from 'node-red';
 
-interface LocationConfigDef extends NodeDef {
+interface LocationConfigNodeDef extends NodeDef {
   latitude: number;
   longitude: number;
   timezone: string;
@@ -11,7 +11,7 @@ interface LocationConfigDef extends NodeDef {
 }
 
 const locationConfig: NodeInitializer = (RED: NodeAPI) => {
-  function LocationConfigNode(this: Node, config: LocationConfigDef) {
+  function LocationConfigNode(this: Node & { latitude?: number; longitude?: number; timezone?: string; axialTilt?: number; orbitalPeriod?: number; rotationalPeriod?: number; timeScale?: number }, config: LocationConfigNodeDef) {
     RED.nodes.createNode(this, config);
     
     // Store configuration properties
