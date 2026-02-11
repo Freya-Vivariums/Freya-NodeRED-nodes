@@ -1,3 +1,20 @@
+<!--
+  Freya Vivarium Control System - Humidity Controller Node HTML
+  Copyright (C) 2025 Sanne 'SpuQ' Santens
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
 <script type="text/javascript">
   RED.nodes.registerType('humidity controller',{
     category: 'Freya Vivariums',
@@ -61,7 +78,7 @@
   <div class="form-row">
     <label for="node-input-deadband"><i class="fa fa-arrows-h"></i> Deadband (%)</label>
     <input type="number" id="node-input-deadband" placeholder="2.0" step="0.1" min="0">
-    <div class="form-tips">Half-width around target humidity to prevent oscillation</div>
+    <div class="form-tips">Dual deadband threshold. Humidifying starts below target-deadband, stops at target. Dehumidifying starts above target+deadband, stops at target.</div>
   </div>
   
   <div class="form-row">
@@ -95,7 +112,7 @@
 </script>
 
 <script type="text/html" data-help-name="humidity controller">
-  <p>Bang-bang humidity controller with deadband and safety overrides for vivarium environmental control.</p>
+  <p>Dual deadband humidity controller with target-centered control zones and safety overrides for vivarium environmental control.</p>
   
   <h3>Input</h3>
   <dl class="message-properties">
@@ -117,9 +134,9 @@
   
   <h3>Control Logic</h3>
   <ul>
-    <li><strong>Humidifying:</strong> When reading < target - deadband</li>
-    <li><strong>Dehumidifying:</strong> When reading > target + deadband</li>
-    <li><strong>Idle:</strong> When within deadband (maintains previous state)</li>
+    <li><strong>Humidifying:</strong> Starts when reading < target - deadband, continues until reading reaches target</li>
+    <li><strong>Dehumidifying:</strong> Starts when reading > target + deadband, continues until reading reaches target</li>
+    <li><strong>Idle:</strong> When at target or within deadband with no prior active state</li>
     <li><strong>Safety Override:</strong> Force humidification below minimum or dehumidification above maximum</li>
   </ul>
   

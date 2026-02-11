@@ -1,11 +1,21 @@
-/**
- * @file system-actuators.ts
- * @module system-actuators
- * @description
- * Node.js/TypeScript client for the io.freya.SystemActuatorsDriver D-Bus service
+/*
+ * Freya Vivarium Control System - System Actuators Library
+ * Copyright (C) 2025 Sanne 'SpuQ' Santens
  *
- * @copyright 2025 Sanne “SpuQ” Santens
- * @license MIT
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Node.js/TypeScript client for the io.freya.SystemActuatorsDriver D-Bus service
  */
 
 const dbus =  require('dbus-native');

@@ -1,8 +1,28 @@
+/*
+ * Freya Vivarium Control System - Circadian Core Node
+ * Copyright (C) 2025 Sanne 'SpuQ' Santens
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import { NodeAPI, NodeInitializer, Node, NodeMessageInFlow, NodeDef } from 'node-red';
 
 interface CircadianCoreNodeDef extends NodeDef {
   locationConfig: string;
   phaseShift: number;
+  diurnalSwing: number;
+  seasonalSwing: number;
   tickInterval: number;
   decimals: number;
 }
@@ -66,7 +86,7 @@ class AstronomicalCalculator {
 }
 
 const circadianCore: NodeInitializer = (RED: NodeAPI) => {
-  function CircadianCoreNode(this: Node & { locationConfig?: any; phaseShift?: number; tickInterval?: number; decimals?: number }, config: CircadianCoreNodeDef) {
+  function CircadianCoreNode(this: Node & { locationConfig?: any; phaseShift?: number; diurnalSwing?: number; seasonalSwing?: number; tickInterval?: number; decimals?: number }, config: CircadianCoreNodeDef) {
     RED.nodes.createNode(this, config);
     const node = this;
     const state: CircadianState = {};
@@ -81,6 +101,8 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
     // Store configuration - parse numeric values from strings
     this.locationConfig = RED.nodes.getNode(config.locationConfig) as any;
     this.phaseShift = parseFloat(config.phaseShift as any) || 0.0;
+    this.diurnalSwing = parseFloat(config.diurnalSwing as any) || 1.0;
+    this.seasonalSwing = parseFloat(config.seasonalSwing as any) || 1.0;
     this.tickInterval = parseInt(config.tickInterval as any) || 60;
     this.decimals = parseInt(config.decimals as any) !== undefined ? parseInt(config.decimals as any) : 1;
     this.locationConfig = locationConfigNode;
@@ -165,8 +187,15 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
       const seasonalFactor = getSeasonalFactor(simulatedTime);
       const diurnalFactor = getDiurnalFactor(simulatedTime);
       
-      // Combine cycles: seasonal determines envelope, diurnal interpolates within it
-      const combinedFactor = seasonalFactor * 0.7 + diurnalFactor * 0.3; // Weighted combination
+      // Combine cycles with configurable swing amplitudes
+      const seasonalContribution = seasonalFactor * (this.seasonalSwing || 1.0);
+      const diurnalContribution = diurnalFactor * (this.diurnalSwing || 1.0);
+      const totalSwing = (this.seasonalSwing || 1.0) + (this.diurnalSwing || 1.0);
+      
+      // Handle edge case: if both swings are 0, default to midpoint
+      const combinedFactor = totalSwing > 0 
+        ? Math.max(0, Math.min(1, (seasonalContribution + diurnalContribution) / totalSwing))
+        : 0.5;
       
       // Linear interpolation between absolute min and max
       return state.absoluteMin + (state.absoluteMax - state.absoluteMin) * combinedFactor;
@@ -203,7 +232,7 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
       }
       
       // Use configured tick interval in real-time seconds
-      const intervalMs = (this.tickInterval || 60) * 1000;
+      const intervalMs = (node.tickInterval || 60) * 1000;
       
       state.intervalId = setInterval(() => {
         // Only emit if we have both setpoints
@@ -228,6 +257,7 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
         // Emit if we have both values
         if (state.absoluteMin !== undefined && state.absoluteMax !== undefined) {
           emitTarget();
+          startTickInterval();
         }
       } else if (msg.topic === 'absoluteMax' && typeof msg.payload === 'number') {
         state.absoluteMax = msg.payload;
@@ -236,6 +266,7 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
         // Emit if we have both values
         if (state.absoluteMin !== undefined && state.absoluteMax !== undefined) {
           emitTarget();
+          startTickInterval();
         }
       } else if (typeof msg.payload === 'object' && msg.payload !== null) {
         // Handle object-based setpoint messages (legacy support)
@@ -248,6 +279,9 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
           
           // Emit immediately when setpoints are updated
           emitTarget();
+          
+          // Start the tick interval when we have both setpoints
+          startTickInterval();
         }
       }
       

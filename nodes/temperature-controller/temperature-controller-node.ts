@@ -1,9 +1,22 @@
 /*
- * Node-RED node for Temperature Controller (Bang-Bang with Deadband)
- * Implements bang-bang control with safety overrides for temperature regulation
+ * Freya Vivarium Control System - Temperature Controller Node
+ * Copyright (C) 2025 Sanne 'SpuQ' Santens
  *
- * Copyright (c) 2025 Sanne 'SpuQ' Santens.
- * Licensed under the MIT License. See the project's LICENSE file for details.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Node-RED node for Temperature Controller (Dual Deadband)
+ * Implements dual deadband control with safety overrides for temperature regulation
  */
 import { NodeAPI, NodeInitializer, Node, NodeMessageInFlow, NodeDef } from 'node-red';
 
@@ -64,8 +77,8 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
           },
           {
             payload: {
-              severity: this.watchdogSeverity,
-              message: `No sensor feedback for ${this.watchdogTimeout}s`,
+              severity: node.watchdogSeverity,
+              message: `No sensor feedback for ${node.watchdogTimeout}s`,
               state: 'open-loop',
               timestamp: new Date().toISOString()
             },
@@ -73,8 +86,8 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
           }
         ]);
         
-        node.status({ fill: 'red', shape: 'dot', text: `No sensor for ${this.watchdogTimeout}s` });
-      }, (this.watchdogTimeout || 60) * 1000);
+        node.status({ fill: 'red', shape: 'dot', text: `No sensor for ${node.watchdogTimeout}s` });
+      }, (node.watchdogTimeout || 60) * 1000);
     };
     
     const stopWatchdog = () => {
@@ -84,7 +97,7 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
       }
     };
 
-    // Bang-bang control logic with deadband
+    // Dual deadband control logic - heating operates below target, cooling above target
     const calculateControl = (): { heater: string; cooler: string; state: string; override?: string } => {
       // In open-loop mode, return safe state
       if (state.openLoopMode) {
@@ -115,18 +128,25 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
       // Clear safety override if we're back in normal range
       state.safetyOverride = null;
       
-      // Bang-bang control with deadband
+      // Dual deadband control with target as dividing line
       if (temp < target - (deadband || 1.0)) {
+        // Below heating threshold - start heating
         state.currentState = 'heating';
         return { heater: 'on', cooler: 'off', state: 'heating' };
       } else if (temp > target + (deadband || 1.0)) {
+        // Above cooling threshold - start cooling
         state.currentState = 'cooling';
         return { heater: 'off', cooler: 'on', state: 'cooling' };
+      } else if (state.currentState === 'heating' && temp < target) {
+        // Continue heating until we reach target
+        return { heater: 'on', cooler: 'off', state: 'heating' };
+      } else if (state.currentState === 'cooling' && temp > target) {
+        // Continue cooling until we reach target
+        return { heater: 'off', cooler: 'on', state: 'cooling' };
       } else {
-        // Within deadband - maintain current state
-        const heater = state.currentState === 'heating' ? 'on' : 'off';
-        const cooler = state.currentState === 'cooling' ? 'on' : 'off';
-        return { heater, cooler, state: state.currentState };
+        // At target or within deadband with no prior state - idle
+        state.currentState = 'idle';
+        return { heater: 'off', cooler: 'off', state: 'idle' };
       }
     };
 
@@ -147,11 +167,14 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
       if (control.override) {
         node.status({ fill: 'red', shape: 'dot', text: `SAFETY: ${control.override} (${temp}°C)` });
       } else if (control.state === 'heating') {
-        node.status({ fill: 'green', shape: 'dot', text: `Heating: ${temp}°C → ${target}°C` });
+        const deadband = node.deadband || 1.0;
+        node.status({ fill: 'green', shape: 'dot', text: `Heating: ${temp}°C → ${target}°C (±${deadband}°C)` });
       } else if (control.state === 'cooling') {
-        node.status({ fill: 'blue', shape: 'dot', text: `Cooling: ${temp}°C → ${target}°C` });
+        const deadband = node.deadband || 1.0;
+        node.status({ fill: 'blue', shape: 'dot', text: `Cooling: ${temp}°C → ${target}°C (±${deadband}°C)` });
       } else {
-        node.status({ fill: 'grey', shape: 'dot', text: `Idle: ${temp}°C (${target}°C)` });
+        const deadband = node.deadband || 1.0;
+        node.status({ fill: 'grey', shape: 'dot', text: `Idle: ${temp}°C (target ${target}°C ±${deadband}°C)` });
       }
     };
 

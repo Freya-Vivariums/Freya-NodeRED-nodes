@@ -57,8 +57,8 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
           },
           {
             payload: {
-              severity: this.watchdogSeverity,
-              message: `No sensor feedback for ${this.watchdogTimeout}s`,
+              severity: node.watchdogSeverity,
+              message: `No sensor feedback for ${node.watchdogTimeout}s`,
               state: 'open-loop',
               timestamp: new Date().toISOString()
             },
@@ -66,8 +66,8 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
           }
         ]);
         
-        node.status({ fill: 'red', shape: 'dot', text: `No sensor for ${this.watchdogTimeout}s` });
-      }, (this.watchdogTimeout || 60) * 1000);
+        node.status({ fill: 'red', shape: 'dot', text: `No sensor for ${node.watchdogTimeout}s` });
+      }, (node.watchdogTimeout || 60) * 1000);
     };
     
     const stopWatchdog = () => {
@@ -77,7 +77,7 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
       }
     };
 
-    // Bang-bang control logic with deadband
+    // Dual deadband control logic - humidifying operates below target, dehumidifying above target
     const calculateControl = (): { humidifier: string; dehumidifier: string; state: string; override?: string } => {
       // In open-loop mode, return safe state
       if (state.openLoopMode) {
@@ -108,18 +108,25 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
       // Clear safety override if we're back in normal range
       state.safetyOverride = null;
       
-      // Bang-bang control with deadband
+      // Dual deadband control with target as dividing line
       if (humidity < target - (deadband || 2.0)) {
+        // Below humidifying threshold - start humidifying
         state.currentState = 'humidifying';
         return { humidifier: 'on', dehumidifier: 'off', state: 'humidifying' };
       } else if (humidity > target + (deadband || 2.0)) {
+        // Above dehumidifying threshold - start dehumidifying
         state.currentState = 'dehumidifying';
         return { humidifier: 'off', dehumidifier: 'on', state: 'dehumidifying' };
+      } else if (state.currentState === 'humidifying' && humidity < target) {
+        // Continue humidifying until we reach target
+        return { humidifier: 'on', dehumidifier: 'off', state: 'humidifying' };
+      } else if (state.currentState === 'dehumidifying' && humidity > target) {
+        // Continue dehumidifying until we reach target
+        return { humidifier: 'off', dehumidifier: 'on', state: 'dehumidifying' };
       } else {
-        // Within deadband - maintain current state
-        const humidifier = state.currentState === 'humidifying' ? 'on' : 'off';
-        const dehumidifier = state.currentState === 'dehumidifying' ? 'on' : 'off';
-        return { humidifier, dehumidifier, state: state.currentState };
+        // At target or within deadband with no prior state - idle
+        state.currentState = 'idle';
+        return { humidifier: 'off', dehumidifier: 'off', state: 'idle' };
       }
     };
 
@@ -140,11 +147,14 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
       if (control.override) {
         node.status({ fill: 'red', shape: 'dot', text: `SAFETY: ${control.override} (${humidity}%)` });
       } else if (control.state === 'humidifying') {
-        node.status({ fill: 'green', shape: 'dot', text: `Humidifying: ${humidity}% → ${target}%` });
+        const deadband = node.deadband || 2.0;
+        node.status({ fill: 'green', shape: 'dot', text: `Humidifying: ${humidity}% → ${target}% (±${deadband}%)` });
       } else if (control.state === 'dehumidifying') {
-        node.status({ fill: 'blue', shape: 'dot', text: `Dehumidifying: ${humidity}% → ${target}%` });
+        const deadband = node.deadband || 2.0;
+        node.status({ fill: 'blue', shape: 'dot', text: `Dehumidifying: ${humidity}% → ${target}% (±${deadband}%)` });
       } else {
-        node.status({ fill: 'grey', shape: 'dot', text: `Idle: ${humidity}% (${target}%)` });
+        const deadband = node.deadband || 2.0;
+        node.status({ fill: 'grey', shape: 'dot', text: `Idle: ${humidity}% (target ${target}% ±${deadband}%)` });
       }
     };
 

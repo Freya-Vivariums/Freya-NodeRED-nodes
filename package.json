@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Custom nodes for Freya Vivarium Control System",
   "author": "Sanne 'SpuQ' Santens",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "homepage": "https://github.com/Freya-Vivariums",
   "bugs": {
     "url": "https://www.reddit.com/r/FreyaVivariums"

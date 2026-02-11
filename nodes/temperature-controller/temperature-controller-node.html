@@ -1,3 +1,20 @@
+<!--
+  Freya Vivarium Control System - Temperature Controller Node HTML
+  Copyright (C) 2025 Sanne 'SpuQ' Santens
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
 <script type="text/javascript">
   RED.nodes.registerType('temperature controller',{  
     category: 'Freya Vivariums',
@@ -32,7 +49,7 @@
   <div class="form-row">
     <label for="node-input-deadband">Deadband (°C)</label>
     <input type="number" id="node-input-deadband" placeholder="1.0" step="0.1" min="0.1">
-    <i class="fa fa-info-circle" title="Half-width of the deadband around target. With target 25°C and deadband 1.0°C, controller is idle between 24-26°C."></i>
+    <i class="fa fa-info-circle" title="Dual deadband threshold. Heating starts below target-deadband, stops at target. Cooling starts above target+deadband, stops at target. With target 25°C and deadband 1.0°C: heating operates 24-25°C, cooling operates 26-25°C, idle between 24-26°C when no prior state."></i>
   </div>
   <hr/>
   <div class="form-row">
@@ -68,7 +85,7 @@
 </script>
 
 <script type="text/html" data-help-name="temperature controller">
-  <p>The <b>Temperature Controller</b> node implements bang-bang control with deadband for temperature regulation.</p>
+  <p>The <b>Temperature Controller</b> node implements dual deadband control with target-centered control zones for temperature regulation.</p>
   
   <h3>Input</h3>
   <dl class="message-properties">
@@ -87,9 +104,9 @@
   
   <h3>Control Logic</h3>
   <ul>
-    <li><strong>Heating:</strong> When reading &lt; target - deadband</li>
-    <li><strong>Cooling:</strong> When reading &gt; target + deadband</li>
-    <li><strong>Idle:</strong> When reading within deadband (maintains previous state)</li>
+    <li><strong>Heating:</strong> Starts when reading &lt; target - deadband, continues until reading reaches target</li>
+    <li><strong>Cooling:</strong> Starts when reading &gt; target + deadband, continues until reading reaches target</li>
+    <li><strong>Idle:</strong> When at target or within deadband with no prior active state</li>
   </ul>
   
   <h3>Safety Overrides</h3>

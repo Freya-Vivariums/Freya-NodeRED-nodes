@@ -1,3 +1,21 @@
+/*
+ * Freya Vivarium Control System - Environment Sensor Node
+ * Copyright (C) 2025 Sanne 'SpuQ' Santens
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 /**
  * @file environment-sensor-node.ts
  * @module environment-sensor-node
@@ -5,8 +23,8 @@
  * Node-RED node that uses the `environment-sensor` library to communicate
  * with the Freya Environment Sensor Driver over D-Bus.
  *
- * @copyright 2025 Sanne “SpuQ” Santens
- * @license MIT
+ * @copyright 2025 Sanne "SpuQ" Santens
+ * @license GPL-3.0
  */
 
 import { NodeAPI, NodeInitializer, Node, NodeMessageInFlow, NodeDef } from 'node-red';

@@ -19,7 +19,7 @@ npm install node-red-contrib-freya-nodes
 ```
 
 ## License & Collaboration
-**Copyright© 2025 Sanne 'SpuQ' Santens**. The Freya NodeRED nodes project is licensed under the **[MIT License](LICENSE.txt)**. The [Rules & Guidelines](https://github.com/Freya-Vivariums/.github/blob/main/brand/Freya_Trademark_Rules_and_Guidelines.md) apply to the usage of the Freya Vivariums™ brand.
+**Copyright© 2025 Sanne 'SpuQ' Santens**. The Freya NodeRED nodes project is licensed under the **[GNU General Public License v3.0](LICENSE.txt)**. The [Rules & Guidelines](https://github.com/Freya-Vivariums/.github/blob/main/brand/Freya_Trademark_Rules_and_Guidelines.md) apply to the usage of the Freya Vivariums™ brand.
 
 ### Collaboration
 
