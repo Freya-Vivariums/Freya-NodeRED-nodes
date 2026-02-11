@@ -4,6 +4,8 @@ interface HumidityControllerNodeDef extends NodeDef {
   deadband: number;
   minimumHumidity: number;
   maximumHumidity: number;
+  watchdogTimeout: number;
+  watchdogSeverity: 'warning' | 'error';
 }
 
 interface ControllerState {
@@ -11,26 +13,77 @@ interface ControllerState {
   targetHumidity?: number;
   currentState: 'idle' | 'humidifying' | 'dehumidifying';
   safetyOverride: null | 'min' | 'max';
+  watchdogTimer?: NodeJS.Timeout;
+  openLoopMode: boolean;
 }
 
 const humidityController: NodeInitializer = (RED: NodeAPI) => {
-  function HumidityControllerNode(this: Node & { deadband?: number; minimumHumidity?: number; maximumHumidity?: number }, config: HumidityControllerNodeDef) {
+  function HumidityControllerNode(this: Node & { deadband?: number; minimumHumidity?: number; maximumHumidity?: number; watchdogTimeout?: number; watchdogSeverity?: string }, config: HumidityControllerNodeDef) {
     RED.nodes.createNode(this, config);
     const node = this;
     
-    // Store configuration
-    this.deadband = config.deadband || 2.0;
-    this.minimumHumidity = config.minimumHumidity || 0.0;
-    this.maximumHumidity = config.maximumHumidity || 100.0;
+    // Store configuration - parse numeric values from strings
+    this.deadband = parseFloat(config.deadband as any) || 2.0;
+    this.minimumHumidity = parseFloat(config.minimumHumidity as any) || 0.0;
+    this.maximumHumidity = parseFloat(config.maximumHumidity as any) || 100.0;
+    this.watchdogTimeout = parseInt(config.watchdogTimeout as any) || 60;
+    this.watchdogSeverity = config.watchdogSeverity || 'warning';
     
     // Controller state
     const state: ControllerState = {
       currentState: 'idle',
-      safetyOverride: null
+      safetyOverride: null,
+      openLoopMode: false
+    };
+
+    // Watchdog functions
+    const startWatchdog = () => {
+      if (state.watchdogTimer) {
+        clearTimeout(state.watchdogTimer);
+      }
+      
+      state.watchdogTimer = setTimeout(() => {
+        // Watchdog triggered - enter open-loop mode
+        state.openLoopMode = true;
+        
+        // Send safe state (all actuators off) and status
+        node.send([
+          {
+            payload: {
+              humidifier: 'off',
+              dehumidifier: 'off'
+            },
+            topic: 'actuators'
+          },
+          {
+            payload: {
+              severity: this.watchdogSeverity,
+              message: `No sensor feedback for ${this.watchdogTimeout}s`,
+              state: 'open-loop',
+              timestamp: new Date().toISOString()
+            },
+            topic: 'status'
+          }
+        ]);
+        
+        node.status({ fill: 'red', shape: 'dot', text: `No sensor for ${this.watchdogTimeout}s` });
+      }, (this.watchdogTimeout || 60) * 1000);
+    };
+    
+    const stopWatchdog = () => {
+      if (state.watchdogTimer) {
+        clearTimeout(state.watchdogTimer);
+        state.watchdogTimer = undefined;
+      }
     };
 
     // Bang-bang control logic with deadband
     const calculateControl = (): { humidifier: string; dehumidifier: string; state: string; override?: string } => {
+      // In open-loop mode, return safe state
+      if (state.openLoopMode) {
+        return { humidifier: 'off', dehumidifier: 'off', state: 'open-loop' };
+      }
+      
       if (state.currentHumidity === undefined || state.targetHumidity === undefined) {
         return { humidifier: 'off', dehumidifier: 'off', state: 'idle' };
       }
@@ -72,6 +125,10 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
 
     // Update node status display
     const updateStatus = (control: { state: string; override?: string }) => {
+      if (state.openLoopMode) {
+        return; // Status already set by watchdog
+      }
+      
       if (state.currentHumidity === undefined || state.targetHumidity === undefined) {
         node.status({ fill: 'yellow', shape: 'dot', text: 'awaiting inputs' });
         return;
@@ -91,8 +148,8 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
       }
     };
 
-    // Process control calculation and emit outputs
-    const processControl = () => {
+    // Execute control loop - called on every sensor update
+    const _executeControlLoop = () => {
       const control = calculateControl();
       
       // Send actuator commands
@@ -110,13 +167,31 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
             target: state.targetHumidity,
             reading: state.currentHumidity,
             safetyOverride: control.override || null,
-            deadband: this.deadband
+            deadband: this.deadband,
+            openLoopMode: state.openLoopMode
           },
           topic: 'status'
         }
       ]);
       
       updateStatus(control);
+    };
+    
+    // Update humidity from sensor
+    const updateHumidity = (humidity: number) => {
+      state.currentHumidity = humidity;
+      
+      // Exit open-loop mode if we were in it
+      if (state.openLoopMode) {
+        state.openLoopMode = false;
+        node.log('Exiting open-loop mode - sensor feedback restored');
+      }
+      
+      // Restart watchdog
+      startWatchdog();
+      
+      // Execute control loop immediately
+      _executeControlLoop();
     };
 
     // Handle input messages
@@ -125,7 +200,7 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
       if (msg.topic === 'sensor') {
         // Sensor reading from environment sensor
         if (typeof msg.payload === 'number') {
-          state.currentHumidity = msg.payload;
+          updateHumidity(msg.payload);
           node.log(`Current humidity updated: ${msg.payload}%`);
         }
       } else {
@@ -133,15 +208,20 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
         if (typeof msg.payload === 'number') {
           state.targetHumidity = msg.payload;
           node.log(`Target humidity updated: ${msg.payload}%`);
+          
+          // Execute control loop if we have sensor data and not in open-loop mode
+          if (state.currentHumidity !== undefined && !state.openLoopMode) {
+            _executeControlLoop();
+          }
         }
       }
       
-      // Process control if we have both values
-      if (state.targetHumidity !== undefined && state.currentHumidity !== undefined) {
-        processControl();
-      }
-      
       if (done) done();
+    });
+    
+    // Clean up on node removal
+    node.on('close', () => {
+      stopWatchdog();
     });
 
     // Initial status

@@ -24,7 +24,7 @@ const environmentSensor: NodeInitializer = (RED: NodeAPI) => {
     const node = this;
 
     const variable = config.variable;
-    const sampleinterval = parseFloat(config.sampleinterval);
+    const sampleinterval = parseFloat(config.sampleinterval as any) || 1.0;
 
     const sensorDriver = new SensorDriver();
 

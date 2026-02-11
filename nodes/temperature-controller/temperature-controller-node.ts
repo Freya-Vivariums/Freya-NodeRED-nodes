@@ -11,6 +11,8 @@ interface TemperatureControllerNodeDef extends NodeDef {
   deadband: number;
   minimumTemperature: number;
   maximumTemperature: number;
+  watchdogTimeout: number;
+  watchdogSeverity: 'warning' | 'error';
 }
 
 interface ControllerState {
@@ -18,26 +20,77 @@ interface ControllerState {
   currentTemperature?: number;
   currentState: 'heating' | 'cooling' | 'idle';
   safetyOverride?: 'min' | 'max' | null;
+  watchdogTimer?: NodeJS.Timeout;
+  openLoopMode: boolean;
 }
 
 const temperatureController: NodeInitializer = (RED: NodeAPI) => {
-  function TemperatureControllerNode(this: Node & { deadband?: number; minimumTemperature?: number; maximumTemperature?: number }, config: TemperatureControllerNodeDef) {
+  function TemperatureControllerNode(this: Node & { deadband?: number; minimumTemperature?: number; maximumTemperature?: number; watchdogTimeout?: number; watchdogSeverity?: string }, config: TemperatureControllerNodeDef) {
     RED.nodes.createNode(this, config);
     const node = this;
     
-    // Store configuration
-    this.deadband = config.deadband || 1.0;
-    this.minimumTemperature = config.minimumTemperature || 10.0;
-    this.maximumTemperature = config.maximumTemperature || 50.0;
+    // Store configuration - parse numeric values from strings
+    this.deadband = parseFloat(config.deadband as any) || 1.0;
+    this.minimumTemperature = parseFloat(config.minimumTemperature as any) || 10.0;
+    this.maximumTemperature = parseFloat(config.maximumTemperature as any) || 50.0;
+    this.watchdogTimeout = parseInt(config.watchdogTimeout as any) || 60;
+    this.watchdogSeverity = config.watchdogSeverity || 'warning';
     
     // Controller state
     const state: ControllerState = {
       currentState: 'idle',
-      safetyOverride: null
+      safetyOverride: null,
+      openLoopMode: false
+    };
+
+    // Watchdog functions
+    const startWatchdog = () => {
+      if (state.watchdogTimer) {
+        clearTimeout(state.watchdogTimer);
+      }
+      
+      state.watchdogTimer = setTimeout(() => {
+        // Watchdog triggered - enter open-loop mode
+        state.openLoopMode = true;
+        
+        // Send safe state (all actuators off) and status
+        node.send([
+          {
+            payload: {
+              heater: 'off',
+              cooler: 'off'
+            },
+            topic: 'actuators'
+          },
+          {
+            payload: {
+              severity: this.watchdogSeverity,
+              message: `No sensor feedback for ${this.watchdogTimeout}s`,
+              state: 'open-loop',
+              timestamp: new Date().toISOString()
+            },
+            topic: 'status'
+          }
+        ]);
+        
+        node.status({ fill: 'red', shape: 'dot', text: `No sensor for ${this.watchdogTimeout}s` });
+      }, (this.watchdogTimeout || 60) * 1000);
+    };
+    
+    const stopWatchdog = () => {
+      if (state.watchdogTimer) {
+        clearTimeout(state.watchdogTimer);
+        state.watchdogTimer = undefined;
+      }
     };
 
     // Bang-bang control logic with deadband
     const calculateControl = (): { heater: string; cooler: string; state: string; override?: string } => {
+      // In open-loop mode, return safe state
+      if (state.openLoopMode) {
+        return { heater: 'off', cooler: 'off', state: 'open-loop' };
+      }
+      
       if (state.currentTemperature === undefined || state.targetTemperature === undefined) {
         return { heater: 'off', cooler: 'off', state: 'idle' };
       }
@@ -79,6 +132,10 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
 
     // Update node status display
     const updateStatus = (control: any) => {
+      if (state.openLoopMode) {
+        return; // Status already set by watchdog
+      }
+      
       if (state.currentTemperature === undefined || state.targetTemperature === undefined) {
         node.status({ fill: 'yellow', shape: 'dot', text: 'awaiting inputs' });
         return;
@@ -98,8 +155,8 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
       }
     };
 
-    // Process control calculation and emit outputs
-    const processControl = () => {
+    // Execute control loop - called on every sensor update
+    const _executeControlLoop = () => {
       const control = calculateControl();
       
       // Send actuator commands
@@ -117,13 +174,31 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
             target: state.targetTemperature,
             reading: state.currentTemperature,
             safetyOverride: control.override || null,
-            deadband: this.deadband
+            deadband: this.deadband,
+            openLoopMode: state.openLoopMode
           },
           topic: 'status'
         }
       ]);
       
       updateStatus(control);
+    };
+    
+    // Update temperature from sensor
+    const updateTemperature = (temperature: number) => {
+      state.currentTemperature = temperature;
+      
+      // Exit open-loop mode if we were in it
+      if (state.openLoopMode) {
+        state.openLoopMode = false;
+        node.log('Exiting open-loop mode - sensor feedback restored');
+      }
+      
+      // Restart watchdog
+      startWatchdog();
+      
+      // Execute control loop immediately
+      _executeControlLoop();
     };
 
     // Handle input messages
@@ -132,7 +207,7 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
       if (msg.topic === 'sensor') {
         // Sensor reading from environment sensor
         if (typeof msg.payload === 'number') {
-          state.currentTemperature = msg.payload;
+          updateTemperature(msg.payload);
           node.log(`Current temperature updated: ${msg.payload}°C`);
         }
       } else {
@@ -140,15 +215,20 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
         if (typeof msg.payload === 'number') {
           state.targetTemperature = msg.payload;
           node.log(`Target temperature updated: ${msg.payload}°C`);
+          
+          // Execute control loop if we have sensor data and not in open-loop mode
+          if (state.currentTemperature !== undefined && !state.openLoopMode) {
+            _executeControlLoop();
+          }
         }
       }
       
-      // Process control if we have both values
-      if (state.targetTemperature !== undefined && state.currentTemperature !== undefined) {
-        processControl();
-      }
-      
       if (done) done();
+    });
+    
+    // Clean up on node removal
+    node.on('close', () => {
+      stopWatchdog();
     });
 
     // Initial status

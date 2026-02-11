@@ -78,11 +78,11 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
       node.status({ fill: 'red', shape: 'dot', text: 'no location config' });
       node.error('Location configuration node not found');
     }
-    // Store configuration
+    // Store configuration - parse numeric values from strings
     this.locationConfig = RED.nodes.getNode(config.locationConfig) as any;
-    this.phaseShift = config.phaseShift || 0.0;
-    this.tickInterval = config.tickInterval || 60;
-    this.decimals = config.decimals !== undefined ? config.decimals : 1;
+    this.phaseShift = parseFloat(config.phaseShift as any) || 0.0;
+    this.tickInterval = parseInt(config.tickInterval as any) || 60;
+    this.decimals = parseInt(config.decimals as any) !== undefined ? parseInt(config.decimals as any) : 1;
     this.locationConfig = locationConfigNode;
 
     // Calculate simulated time

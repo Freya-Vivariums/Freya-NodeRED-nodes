@@ -25,7 +25,7 @@ const systemActuators: NodeInitializer = (RED: NodeAPI) => {
     const node = this;
 
     const actuator = config.actuator;
-    const channel = parseInt(config.channel);
+    const channel = parseInt(config.channel as any) || 0;
     const mode = config.mode;
 
     const actuatorsDriver = new ActuatorsDriver();

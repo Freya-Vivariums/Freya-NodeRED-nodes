@@ -6,7 +6,9 @@
       name: {value:""},
       deadband: {value: 2.0, required: true, validate: RED.validators.number()},
       minimumHumidity: {value: 0.0, required: true, validate: RED.validators.number()},
-      maximumHumidity: {value: 100.0, required: true, validate: RED.validators.number()}
+      maximumHumidity: {value: 100.0, required: true, validate: RED.validators.number()},
+      watchdogTimeout: {value: 60, required: true, validate: RED.validators.number()},
+      watchdogSeverity: {value: "warning", required: true}
     },
     inputs:1,
     outputs:2,
@@ -73,6 +75,23 @@
     <input type="number" id="node-input-maximumHumidity" placeholder="100.0" step="1" min="0" max="100">
     <div class="form-tips">Safety ceiling - force dehumidification above this level</div>
   </div>
+  
+  <hr/>
+  
+  <div class="form-row">
+    <label for="node-input-watchdogTimeout"><i class="fa fa-clock-o"></i> Watchdog Timeout (seconds)</label>
+    <input type="number" id="node-input-watchdogTimeout" placeholder="60" step="1" min="1">
+    <div class="form-tips">Time to wait without sensor updates before entering safe open-loop mode</div>
+  </div>
+  
+  <div class="form-row">
+    <label for="node-input-watchdogSeverity"><i class="fa fa-exclamation-triangle"></i> Watchdog Severity</label>
+    <select id="node-input-watchdogSeverity">
+      <option value="warning">Warning</option>
+      <option value="error">Error</option>
+    </select>
+    <div class="form-tips">Severity level emitted when watchdog triggers</div>
+  </div>
 </script>
 
 <script type="text/html" data-help-name="humidity controller">
@@ -109,5 +128,15 @@
     <li><strong>Deadband:</strong> Half-width around target to prevent oscillation (default: 2.0%)</li>
     <li><strong>Minimum Humidity:</strong> Safety floor for emergency humidification (default: 0%)</li>
     <li><strong>Maximum Humidity:</strong> Safety ceiling for emergency dehumidification (default: 100%)</li>
+    <li><strong>Watchdog Timeout:</strong> Time without sensor updates before open-loop mode (default: 60s)</li>
+    <li><strong>Watchdog Severity:</strong> Alert level when watchdog triggers (warning/error)</li>
+  </ul>
+  
+  <h3>Watchdog Protection</h3>
+  <ul>
+    <li><strong>Sensor Monitoring:</strong> Tracks time since last sensor update</li>
+    <li><strong>Open-Loop Mode:</strong> Enters safe state (all actuators off) if no sensor feedback within timeout</li>
+    <li><strong>Auto Recovery:</strong> Resumes normal control immediately when sensor returns</li>
+    <li><strong>Status Alerts:</strong> Emits configurable severity alerts on watchdog trigger</li>
   </ul>
 </script>

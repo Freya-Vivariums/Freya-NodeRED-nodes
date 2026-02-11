@@ -6,7 +6,9 @@
       name: {value:""},
       deadband: {value:1.0, required:true, validate:RED.validators.number()},
       minimumTemperature: {value:10.0, required:true, validate:RED.validators.number()},
-      maximumTemperature: {value:50.0, required:true, validate:RED.validators.number()}
+      maximumTemperature: {value:50.0, required:true, validate:RED.validators.number()},
+      watchdogTimeout: {value:60, required:true, validate:RED.validators.number()},
+      watchdogSeverity: {value:"warning", required:true}
     },
     inputs:1,
     outputs:2,
@@ -46,6 +48,23 @@
     <input type="number" id="node-input-maximumTemperature" placeholder="50.0" step="0.1">
     <i class="fa fa-info-circle" title="Absolute safety ceiling. Force cooling if sensor reads above this, regardless of target."></i>
   </div>
+  <hr/>
+  <div class="form-row">
+    <h3><i class="fa fa-clock-o"></i> Watchdog Settings</h3>
+  </div>
+  <div class="form-row">
+    <label for="node-input-watchdogTimeout">Watchdog Timeout (seconds)</label>
+    <input type="number" id="node-input-watchdogTimeout" placeholder="60" step="1" min="1">
+    <i class="fa fa-info-circle" title="Time to wait without sensor updates before entering safe open-loop mode."></i>
+  </div>
+  <div class="form-row">
+    <label for="node-input-watchdogSeverity">Watchdog Severity</label>
+    <select id="node-input-watchdogSeverity">
+      <option value="warning">Warning</option>
+      <option value="error">Error</option>
+    </select>
+    <i class="fa fa-info-circle" title="Severity level emitted when watchdog triggers. Warning for brief dropouts, Error for critical attention."></i>
+  </div>
 </script>
 
 <script type="text/html" data-help-name="temperature controller">
@@ -77,5 +96,13 @@
   <ul>
     <li><strong>Emergency Heating:</strong> Forces heating if reading &lt; minimum temperature</li>
     <li><strong>Emergency Cooling:</strong> Forces cooling if reading &gt; maximum temperature</li>
+  </ul>
+  
+  <h3>Watchdog Protection</h3>
+  <ul>
+    <li><strong>Sensor Monitoring:</strong> Tracks time since last sensor update</li>
+    <li><strong>Open-Loop Mode:</strong> Enters safe state (all actuators off) if no sensor feedback within timeout</li>
+    <li><strong>Auto Recovery:</strong> Resumes normal control immediately when sensor returns</li>
+    <li><strong>Status Alerts:</strong> Emits configurable severity alerts on watchdog trigger</li>
   </ul>
 </script>

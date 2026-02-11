@@ -14,14 +14,14 @@ const locationConfig: NodeInitializer = (RED: NodeAPI) => {
   function LocationConfigNode(this: Node & { latitude?: number; longitude?: number; timezone?: string; axialTilt?: number; orbitalPeriod?: number; rotationalPeriod?: number; timeScale?: number }, config: LocationConfigNodeDef) {
     RED.nodes.createNode(this, config);
     
-    // Store configuration properties
-    this.latitude = config.latitude || 50.98;
-    this.longitude = config.longitude || 4.32;
+    // Store configuration properties - parse numeric values from strings
+    this.latitude = parseFloat(config.latitude as any) || 50.98;
+    this.longitude = parseFloat(config.longitude as any) || 4.32;
     this.timezone = config.timezone || 'UTC+1';
-    this.axialTilt = config.axialTilt || 23.44;
-    this.orbitalPeriod = config.orbitalPeriod || 365.25;
-    this.rotationalPeriod = config.rotationalPeriod || 24;
-    this.timeScale = config.timeScale || 1.0;
+    this.axialTilt = parseFloat(config.axialTilt as any) || 23.44;
+    this.orbitalPeriod = parseFloat(config.orbitalPeriod as any) || 365.25;
+    this.rotationalPeriod = parseFloat(config.rotationalPeriod as any) || 24;
+    this.timeScale = parseFloat(config.timeScale as any) || 1.0;
   }
 
   RED.nodes.registerType('location-config', LocationConfigNode);
