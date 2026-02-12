@@ -59,25 +59,12 @@ class AstronomicalCalculator {
     return this.degreesToRadians(axialTilt) * Math.sin(dayAngle);
   }
 
-  // Calculate sunrise/sunset times and day length
-  static getDayLength(latitude: number, solarDeclination: number): number {
-    const latRad = this.degreesToRadians(latitude);
-    const cosHourAngle = -Math.tan(latRad) * Math.tan(solarDeclination);
-    
-    // Handle polar day/night
-    if (cosHourAngle > 1) return 0; // Polar night
-    if (cosHourAngle < -1) return 24; // Polar day
-    
-    const hourAngle = Math.acos(cosHourAngle);
-    return 2 * this.radiansToDegrees(hourAngle) / 15; // Convert to hours
-  }
-
   // Calculate solar noon offset based on longitude and timezone
   static getSolarNoonOffset(longitude: number, timezone: string): number {
     // Parse timezone (simplified - assumes UTC±N format)
     const tzMatch = timezone.match(/UTC([+-]?\d+(?:\.\d+)?)/i);
     const tzOffset = tzMatch ? parseFloat(tzMatch[1]) : 0;
-    
+
     // Solar noon occurs when sun is at longitude 0°
     // Each 15° of longitude = 1 hour time difference
     const longitudeOffset = longitude / 15;
@@ -93,13 +80,12 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
 
     // Get location configuration
     const locationConfigNode = RED.nodes.getNode(config.locationConfig);
-    
+
     if (!locationConfigNode) {
       node.status({ fill: 'red', shape: 'dot', text: 'no location config' });
       node.error('Location configuration node not found');
     }
     // Store configuration - parse numeric values from strings
-    this.locationConfig = RED.nodes.getNode(config.locationConfig) as any;
     this.phaseShift = parseFloat(config.phaseShift as any) || 0.0;
     this.diurnalSwing = parseFloat(config.diurnalSwing as any) || 1.0;
     this.seasonalSwing = parseFloat(config.seasonalSwing as any) || 1.0;
@@ -116,89 +102,77 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
       return new Date(epoch + simulatedElapsed);
     };
 
-    // Calculate seasonal cycle factor (0.0 to 1.0)
+    // Calculate seasonal cycle factor (-1.0 to +1.0)
+    // Clean sine: +1 at summer solstice, -1 at winter solstice
+    // Amplitude modulated by latitude and axial tilt
     const getSeasonalFactor = (simulatedTime: Date): number => {
       const dayOfYear = AstronomicalCalculator.getDayOfYear(simulatedTime);
-      const solarDeclination = AstronomicalCalculator.getSolarDeclination(
-        dayOfYear, 
-        this.locationConfig.orbitalPeriod, 
-        this.locationConfig.axialTilt
-      );
-      
-      // Seasonal strength based on latitude and axial tilt
-      const latRad = AstronomicalCalculator.degreesToRadians(this.locationConfig.latitude);
-      const seasonalAmplitude = Math.abs(Math.sin(latRad)) * Math.sin(AstronomicalCalculator.degreesToRadians(this.locationConfig.axialTilt));
-      
-      // Peak at summer solstice for northern hemisphere (day ~172)
       const seasonalAngle = 2 * Math.PI * (dayOfYear - 172) / this.locationConfig.orbitalPeriod;
-      const seasonalValue = Math.cos(seasonalAngle) * seasonalAmplitude;
-      
-      // Normalize to 0.0-1.0 range
-      return 0.5 + seasonalValue * 0.5;
-    };
+      return Math.cos(seasonalAngle);
+  };
 
-    // Calculate diurnal cycle factor (0.0 to 1.0)
+    // Calculate diurnal cycle factor (-1.0 to +1.0)
+    // Clean sine: +1 at solar noon (+ phase shift), -1 at solar midnight (+ phase shift)
+    // No clamping, no rectification — continuous oscillation
     const getDiurnalFactor = (simulatedTime: Date): number => {
-      const dayOfYear = AstronomicalCalculator.getDayOfYear(simulatedTime);
-      const solarDeclination = AstronomicalCalculator.getSolarDeclination(
-        dayOfYear,
-        this.locationConfig.orbitalPeriod,
-        this.locationConfig.axialTilt
-      );
-      
-      const dayLength = AstronomicalCalculator.getDayLength(this.locationConfig.latitude, solarDeclination);
       const solarNoonOffset = AstronomicalCalculator.getSolarNoonOffset(this.locationConfig.longitude, this.locationConfig.timezone);
-      
+
       // Current time in hours since midnight
-      const hoursFromMidnight = simulatedTime.getUTCHours() + simulatedTime.getUTCMinutes() / 60;
-      
+      const hoursFromMidnight = simulatedTime.getUTCHours() + simulatedTime.getUTCMinutes() / 60 + simulatedTime.getUTCSeconds() / 3600;
+
       // Solar noon time in local hours
       const solarNoon = 12 + solarNoonOffset;
-      
+
       // Hours from solar noon
       let hoursFromSolarNoon = hoursFromMidnight - solarNoon;
       if (hoursFromSolarNoon > 12) hoursFromSolarNoon -= 24;
       if (hoursFromSolarNoon < -12) hoursFromSolarNoon += 24;
-      
-      // Diurnal angle with phase shift
+
+      // Diurnal angle with phase shift — continuous cosine, no clamping
       const phaseShiftRad = AstronomicalCalculator.degreesToRadians(this.phaseShift || 0);
       const diurnalAngle = (2 * Math.PI * hoursFromSolarNoon / this.locationConfig.rotationalPeriod) + phaseShiftRad;
-      
-      // Only positive during daylight hours, scaled by day length
-      const dayFraction = dayLength / 24;
-      const maxDiurnalHours = dayLength / 2;
-      
-      if (Math.abs(hoursFromSolarNoon) > maxDiurnalHours) {
-        return 0; // Night time
-      }
-      
-      // Cosine curve during daylight hours
-      const diurnalValue = Math.cos(diurnalAngle);
-      return Math.max(0, diurnalValue) * dayFraction;
+
+      return Math.cos(diurnalAngle);
     };
 
     // Calculate target value
+    //
+    // Two clean sines combined: seasonal (slow, yearly) and diurnal (fast, daily).
+    // The swing settings control the relative weight of each cycle.
+    // The combined result is normalised so that at the combined extremes
+    // (summer solstice + solar noon / winter solstice + solar midnight),
+    // the target exactly hits absoluteMax / absoluteMin.
+    //
+    // Downstream controllers handle any clamping or shaping:
+    // - Temperature/humidity controllers use the full range naturally
+    // - The lighting controller clips negative values to 0 (rectification)
+    //
     const calculateTarget = (): number | null => {
       if (state.absoluteMin === undefined || state.absoluteMax === undefined) {
         return null; // Can't calculate without both setpoints
       }
 
       const simulatedTime = getSimulatedTime();
-      const seasonalFactor = getSeasonalFactor(simulatedTime);
-      const diurnalFactor = getDiurnalFactor(simulatedTime);
-      
-      // Combine cycles with configurable swing amplitudes
-      const seasonalContribution = seasonalFactor * (this.seasonalSwing || 1.0);
-      const diurnalContribution = diurnalFactor * (this.diurnalSwing || 1.0);
-      const totalSwing = (this.seasonalSwing || 1.0) + (this.diurnalSwing || 1.0);
-      
+      const seasonalFactor = getSeasonalFactor(simulatedTime);   // -1 to +1
+      const diurnalFactor = getDiurnalFactor(simulatedTime);     // -1 to +1
+
+      const sSwing = this.seasonalSwing || 1.0;
+      const dSwing = this.diurnalSwing || 1.0;
+      const totalSwing = sSwing + dSwing;
+
       // Handle edge case: if both swings are 0, default to midpoint
-      const combinedFactor = totalSwing > 0 
-        ? Math.max(0, Math.min(1, (seasonalContribution + diurnalContribution) / totalSwing))
-        : 0.5;
-      
+      if (totalSwing === 0) {
+        return state.absoluteMin + (state.absoluteMax - state.absoluteMin) * 0.5;
+      }
+
+      // Weighted combination of both sines (-1 to +1 range)
+      const combined = (seasonalFactor * sSwing + diurnalFactor * dSwing) / totalSwing;
+
+      // Normalise from [-1, +1] to [0, 1]
+      const factor = (combined + 1) / 2;
+
       // Linear interpolation between absolute min and max
-      return state.absoluteMin + (state.absoluteMax - state.absoluteMin) * combinedFactor;
+      return state.absoluteMin + (state.absoluteMax - state.absoluteMin) * factor;
     };
 
     // Emit target value and status - extracted for reuse by both input handler and tick timer
@@ -221,7 +195,7 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
       // Update status with current values
       const statusText = `Target: ${roundedTarget.toFixed(this.decimals)} | Time: ${simulatedTime.toLocaleTimeString()}`;
       node.status({ fill: 'green', shape: 'dot', text: statusText });
-      
+
       state.lastCalculation = Date.now();
     };
 
@@ -230,17 +204,17 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
       if (state.intervalId) {
         clearInterval(state.intervalId);
       }
-      
+
       // Use configured tick interval in real-time seconds
-      const intervalMs = (node.tickInterval || 60) * 1000;
-      
+      const intervalMs = (this.tickInterval || 60) * 1000;
+
       state.intervalId = setInterval(() => {
         // Only emit if we have both setpoints
         if (state.absoluteMin !== undefined && state.absoluteMax !== undefined) {
           emitTarget();
         }
       }, intervalMs);
-      
+
       // Emit immediately if we have setpoints
       if (state.absoluteMin !== undefined && state.absoluteMax !== undefined) {
         emitTarget();
@@ -253,7 +227,7 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
       if (msg.topic === 'absoluteMin' && typeof msg.payload === 'number') {
         state.absoluteMin = msg.payload;
         node.log(`Absolute minimum updated: ${msg.payload}`);
-        
+
         // Emit if we have both values
         if (state.absoluteMin !== undefined && state.absoluteMax !== undefined) {
           emitTarget();
@@ -262,7 +236,7 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
       } else if (msg.topic === 'absoluteMax' && typeof msg.payload === 'number') {
         state.absoluteMax = msg.payload;
         node.log(`Absolute maximum updated: ${msg.payload}`);
-        
+
         // Emit if we have both values
         if (state.absoluteMin !== undefined && state.absoluteMax !== undefined) {
           emitTarget();
@@ -271,20 +245,20 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
       } else if (typeof msg.payload === 'object' && msg.payload !== null) {
         // Handle object-based setpoint messages (legacy support)
         const payload = msg.payload as any;
-        
+
         if (typeof payload.min === 'number' && typeof payload.max === 'number') {
           state.absoluteMin = payload.min;
           state.absoluteMax = payload.max;
           node.log(`Setpoints updated: min=${payload.min}, max=${payload.max}`);
-          
+
           // Emit immediately when setpoints are updated
           emitTarget();
-          
+
           // Start the tick interval when we have both setpoints
           startTickInterval();
         }
       }
-      
+
       done?.();
     });
 
@@ -298,6 +272,9 @@ const circadianCore: NodeInitializer = (RED: NodeAPI) => {
 
     // Initial status
     node.status({ fill: 'yellow', shape: 'dot', text: 'awaiting setpoints' });
+
+    // Start the tick timer
+    startTickInterval();
   }
 
   RED.nodes.registerType( 'circadian core', CircadianCoreNode );

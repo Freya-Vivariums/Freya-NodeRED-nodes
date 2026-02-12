@@ -20,7 +20,13 @@
     category: 'Freya Vivariums',
     color: "#A2CA6F",
     defaults: {
-      name: {value:""}
+      name: {value:""},
+      gain: {value: 1.0, required: true, validate: RED.validators.number()},
+      bottomCutOff: {value: 50.0, required: true, validate: RED.validators.number()},
+      mode: {value: "analog"},
+      scheduleTime1: {value: ""},
+      scheduleTime2: {value: ""},
+      scheduleMode: {value: "allowed"}
     },
     inputs:1,
     outputs:2,
@@ -34,11 +40,107 @@
 
 <script type="text/html" data-template-name="lighting controller">
   <div class="form-row">
-    <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Lighting Controller">
+  </div>
+  <hr/>
+  
+  <div class="form-row">
+    <label for="node-input-bottomCutOff"><i class="fa fa-scissors"></i> Bottom Cut-off</label>
+    <input type="number" id="node-input-bottomCutOff" placeholder="50.0" step="1" min="0" max="100">
+    <i class="fa fa-info-circle" title="Values below this percentage are cut off to 0%. This acts as a 'single diode rectifier + schotkey'."></i>
+  </div>
+  
+  <div class="form-row">
+    <label for="node-input-gain"><i class="fa fa-line-chart"></i> Gain</label>
+    <input type="number" id="node-input-gain" placeholder="1.0" step="0.1" min="0.1">
+    <i class="fa fa-info-circle" title="Multiplier applied to input after bottom cut-off. Values above 100% are clipped to 100%."></i>
+  </div>
+  
+  <div class="form-row">
+    <label for="node-input-mode"><i class="fa fa-sliders"></i> Output Mode</label>
+    <select id="node-input-mode">
+      <option value="analog">Analog - 0.0-100.0%</option>
+      <option value="digital">Digital - ON/OFF</option>
+    </select>
+  </div>
+  
+  <hr/>
+  
+  <div class="form-row">
+    <h3><i class="fa fa-clock-o"></i> Schedule (Optional)</h3>
+    <p style="font-size: 12px; color: #666; margin: 5px 0;">
+      Restrict lighting to specific time windows
+    </p>
+  </div>
+  
+  <div class="form-row">
+    <label for="node-input-scheduleTime1">Start Time</label>
+    <input type="text" id="node-input-scheduleTime1" placeholder="HH:MM" pattern="[0-2][0-9]:[0-5][0-9]">
+    <i class="fa fa-info-circle" title="Start of allowed time window (24-hour format, e.g. 06:30)"></i>
+  </div>
+  
+  <div class="form-row">
+    <label for="node-input-scheduleTime2">End Time</label>
+    <input type="text" id="node-input-scheduleTime2" placeholder="HH:MM" pattern="[0-2][0-9]:[0-5][0-9]">
+    <i class="fa fa-info-circle" title="End of allowed time window (24-hour format, e.g. 22:00)"></i>
+  </div>
+  
+  <div class="form-row">
+    <label for="node-input-scheduleMode">Schedule Mode</label>
+    <select id="node-input-scheduleMode">
+      <option value="allowed">Allowed - Force OFF outside window</option>
+      <option value="guaranteed">Guaranteed - Force ON inside window</option>
+    </select>
   </div>
 </script>
 
 <script type="text/html" data-help-name="lighting controller">
-  <p>The lighting controller lorem ipsum ...</p>
+  <p>
+    The <strong>Lighting Controller</strong> takes a raw brightness value from the circadian core, 
+    applies a bottom cut-off, applies gain, clips to 0–100%, and optionally enforces a time-based schedule.
+  </p>
+  
+  <h3>Configuration</h3>
+  <ul>
+    <li><strong>Bottom Cut-off:</strong> Values below this percentage are cut off to 0%. This acts as a "single diode rectifier + schotkey".</li>
+    <li><strong>Gain:</strong> Multiplier applied to input after bottom cut-off. Values above 100% are clipped to 100%.</li>
+    <li><strong>Output Mode:</strong> 
+      <ul>
+        <li><strong>Analog:</strong> Outputs { lighting: &lt;float 0.0-100.0&gt; } with 1 decimal place</li>
+        <li><strong>Digital:</strong> Outputs { lighting: "on" } if value > 0, else { lighting: "off" }</li>
+      </ul>
+    </li>
+    <li><strong>Schedule (Optional):</strong> Restrict lighting to specific time windows
+      <ul>
+        <li><strong>Start/End Time:</strong> Time window in 24-hour format (HH:MM)</li>
+        <li><strong>Allowed Mode:</strong> Forces light OFF outside the time window</li>
+        <li><strong>Guaranteed Mode:</strong> Forces light ON inside the time window</li>
+      </ul>
+    </li>
+  </ul>
+  
+  <h3>Signal Chain</h3>
+  <ol>
+    <li>Apply bottom cut-off (values below cut-off become 0%)</li>
+    <li>Multiply input by gain</li>
+    <li>Clamp to 0–100% (values above 100% are clipped to 100%)</li>
+    <li>Apply schedule gate (if configured):
+      <ul>
+        <li>Allowed mode: Force 0% outside Time1–Time2 window</li>
+        <li>Guaranteed mode: Force 100% inside Time1–Time2 window</li>
+      </ul>
+    </li>
+  </ol>
+  
+  <h3>Inputs</h3>
+  <ul>
+    <li><strong>Input 1:</strong> msg.payload (number) from circadian core</li>
+  </ul>
+  
+  <h3>Outputs</h3>
+  <ul>
+    <li><strong>Output 1:</strong> Actuator command with formatted lighting value</li>
+    <li><strong>Output 2:</strong> Status message for the status aggregator</li>
+  </ul>
 </script>

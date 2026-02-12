@@ -29,7 +29,7 @@ interface LocationConfigNodeDef extends NodeDef {
 }
 
 const locationConfig: NodeInitializer = (RED: NodeAPI) => {
-  function LocationConfigNode(this: Node & { latitude?: number; longitude?: number; timezone?: string; axialTilt?: number; orbitalPeriod?: number; rotationalPeriod?: number; timeScale?: number }, config: LocationConfigNodeDef) {
+  function LocationConfigNode(this: any, config: LocationConfigNodeDef) {
     RED.nodes.createNode(this, config);
     
     // Store configuration properties - parse numeric values from strings
@@ -42,7 +42,7 @@ const locationConfig: NodeInitializer = (RED: NodeAPI) => {
     this.timeScale = parseFloat(config.timeScale as any) || 1.0;
   }
 
-  RED.nodes.registerType('location-config', LocationConfigNode);
+  RED.nodes.registerType('location-config', LocationConfigNode as any);
 };
 
 export = locationConfig;
