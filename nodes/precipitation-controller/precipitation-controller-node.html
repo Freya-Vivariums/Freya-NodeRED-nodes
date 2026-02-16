@@ -20,12 +20,16 @@
     category: 'Freya Vivariums',
     color: "#A2CA6F",
     defaults: {
-      name: {value:""}
+      name: {value:""},
+      interval: {value: 60, required: true, validate: RED.validators.number()},
+      duration: {value: 30, required: true, validate: RED.validators.number()},
+      tickInterval: {value: 60, required: true, validate: function(v) { return RED.validators.number()(v) && parseInt(v) >= 1; }}
     },
     inputs:1,
-    outputs:2,
-    outputLabels:["control", "status"],
-    icon: "font-awesome/fa-cloud",
+    outputs:1,
+    inputLabels:["parameter update"],
+    outputLabels:["actuator command"],
+    icon: "font-awesome/fa-tint",
     label: function() {
       return this.name || "Precipitation Controller";
     }
@@ -34,11 +38,80 @@
 
 <script type="text/html" data-template-name="precipitation controller">
   <div class="form-row">
-    <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Precipitation Controller">
+  </div>
+  <hr/>
+  <div class="form-row">
+    <label for="node-input-interval"><i class="fa fa-clock-o"></i> Interval (minutes)</label>
+    <input type="number" id="node-input-interval" placeholder="60" step="1" min="1">
+  </div>
+  <div class="form-row">
+    <label for="node-input-duration"><i class="fa fa-tint"></i> Duration (seconds)</label>
+    <input type="number" id="node-input-duration" placeholder="30" step="1" min="1">
+  </div>
+  <hr/>
+  <div class="form-row">
+    <label for="node-input-tickInterval"><i class="fa fa-clock-o"></i> Tick Interval (seconds)</label>
+    <input type="number" id="node-input-tickInterval" placeholder="60" step="1" min="1">
   </div>
 </script>
 
 <script type="text/html" data-help-name="precipitation controller">
-  <p>The precipitation controller lorem ipsum ...</p>
+  <p>The <b>Precipitation Controller</b> drives a pump relay on an interval/duration cycle
+  for vivarium misting or rain simulation.</p>
+
+  <h3>Input</h3>
+  <dl class="message-properties">
+    <dt>msg.topic = "interval" <span class="property-type">number</span></dt>
+    <dd><code>msg.payload</code> sets the precipitation interval in minutes, overriding the configured default</dd>
+
+    <dt>msg.topic = "duration" <span class="property-type">number</span></dt>
+    <dd><code>msg.payload</code> sets the pump duration in seconds, overriding the configured default</dd>
+
+    <dt>msg.topic = "night" <span class="property-type">boolean</span></dt>
+    <dd><code>msg.payload</code> signals nighttime (<code>true</code>) or daytime (<code>false</code>).
+    During nighttime no new precipitation events are started. If the pump is already active
+    when night begins, the current cycle finishes normally.</dd>
+  </dl>
+  <p>Messages with unrecognised topics are ignored.</p>
+
+  <h3>Output</h3>
+  <dl class="message-properties">
+    <dt>msg.payload <span class="property-type">object</span></dt>
+    <dd><code>{ pump: "on" }</code> when the pump turns on, <code>{ pump: "off" }</code> when it turns off.
+    <code>msg.topic</code> is set to <code>"actuators"</code>.
+    Two messages are sent per precipitation event.</dd>
+  </dl>
+
+  <h3>Details</h3>
+  <p>The node runs an autonomous internal tick timer. On each tick it evaluates whether
+  precipitation is due:</p>
+  <ul>
+    <li>If the pump is already running the tick is skipped (no overlapping cycles).</li>
+    <li>If nighttime is signalled, the tick is skipped.</li>
+    <li>If this is the first tick after deploy, or the configured interval has elapsed
+        since the last event, the pump is turned on for the configured duration and then
+        automatically turned off.</li>
+    <li>Otherwise the node updates its status to show the time remaining
+        until the next event.</li>
+  </ul>
+  <p>On redeploy or shutdown the node clears all timers and forces the pump off
+  to prevent it from getting stuck on.</p>
+
+  <h3>Configuration</h3>
+  <ul>
+    <li><strong>Interval:</strong> Time between precipitation events in minutes (default: 60)</li>
+    <li><strong>Duration:</strong> How long the pump runs per event in seconds (default: 30)</li>
+    <li><strong>Tick Interval:</strong> How often to evaluate whether precipitation is due in seconds (default: 60)</li>
+  </ul>
+
+  <h3>Status</h3>
+  <ul>
+    <li><strong>idle</strong> (grey/ring) — initial state before first tick</li>
+    <li><strong>pump on</strong> (blue/dot) — pump is running, shows duration</li>
+    <li><strong>next in …</strong> (green/ring) — waiting, shows time until next event</li>
+    <li><strong>last: HH:MM:SS</strong> (grey/ring) — after pump off, shows timestamp</li>
+    <li><strong>paused (night)</strong> (grey/ring) — precipitation disabled during nighttime</li>
+  </ul>
 </script>
