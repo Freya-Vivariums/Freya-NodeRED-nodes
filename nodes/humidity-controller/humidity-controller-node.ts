@@ -8,6 +8,20 @@ interface HumidityControllerNodeDef extends NodeDef {
   watchdogSeverity: 'warning' | 'error';
 }
 
+/*
+ * Status output states (output 2):
+ *   "idle"           — at target or awaiting inputs
+ *   "humidifying"    — humidifier is active
+ *   "dehumidifying"  — dehumidifier is active
+ *   "error"          — open-loop mode (watchdog triggered)
+ *
+ * Optional fields:
+ *   target         (number)  — target humidity (%)
+ *   reading        (number)  — current sensor reading (%)
+ *   deadband       (number)  — configured deadband (%)
+ *   safetyOverride (string|null) — "minimum humidity" / "maximum humidity" if active
+ */
+
 interface ControllerState {
   currentHumidity?: number;
   targetHumidity?: number;
@@ -15,6 +29,7 @@ interface ControllerState {
   safetyOverride: null | 'min' | 'max';
   watchdogTimer?: NodeJS.Timeout;
   openLoopMode: boolean;
+  previousStatusState: string | null;
 }
 
 const humidityController: NodeInitializer = (RED: NodeAPI) => {
@@ -33,7 +48,27 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
     const state: ControllerState = {
       currentState: 'idle',
       safetyOverride: null,
-      openLoopMode: false
+      openLoopMode: false,
+      previousStatusState: null
+    };
+
+    // Emit a status message on output 2 only when the state changes
+    const emitStatus = (newState: string, optionalFields?: Record<string, any>) => {
+      if (newState === state.previousStatusState) {
+        return null;
+      }
+      state.previousStatusState = newState;
+
+      const statusPayload: Record<string, any> = {
+        state: newState,
+        timestamp: Date.now()
+      };
+
+      if (optionalFields) {
+        Object.assign(statusPayload, optionalFields);
+      }
+
+      return { payload: statusPayload, topic: 'status' };
     };
 
     // Watchdog functions
@@ -47,6 +82,7 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
         state.openLoopMode = true;
         
         // Send safe state (all actuators off) and status
+        state.previousStatusState = 'error';
         node.send([
           {
             payload: {
@@ -57,10 +93,10 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
           },
           {
             payload: {
+              state: 'error',
+              timestamp: Date.now(),
               severity: node.watchdogSeverity,
-              message: `No sensor feedback for ${node.watchdogTimeout}s`,
-              state: 'open-loop',
-              timestamp: new Date().toISOString()
+              message: `No sensor feedback for ${node.watchdogTimeout}s`
             },
             topic: 'status'
           }
@@ -161,7 +197,15 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
     // Execute control loop - called on every sensor update
     const _executeControlLoop = () => {
       const control = calculateControl();
-      
+
+      // Build status message (only emitted on state change)
+      const statusMsg = emitStatus(control.state, {
+        target: state.targetHumidity,
+        reading: state.currentHumidity,
+        deadband: this.deadband,
+        safetyOverride: control.override || null
+      });
+
       // Send actuator commands
       node.send([
         {
@@ -171,17 +215,7 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
           },
           topic: 'actuators'
         },
-        {
-          payload: {
-            state: control.state,
-            target: state.targetHumidity,
-            reading: state.currentHumidity,
-            safetyOverride: control.override || null,
-            deadband: this.deadband,
-            openLoopMode: state.openLoopMode
-          },
-          topic: 'status'
-        }
+        statusMsg
       ]);
       
       updateStatus(control);
@@ -236,6 +270,7 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
 
     // Initial status
     node.status({ fill: 'yellow', shape: 'dot', text: 'awaiting inputs' });
+    emitStatus('idle');
   }
 
   RED.nodes.registerType('humidity controller', HumidityControllerNode);

@@ -30,7 +30,7 @@
     },
     inputs:1,
     outputs:2,
-    outputLabels:["control", "status"],
+    outputLabels:["control (actuators)", "status"],
     icon: "font-awesome/fa-lightbulb-o",
     label: function() {
       return this.name || "Lighting Controller";
@@ -139,8 +139,20 @@
   </ul>
   
   <h3>Outputs</h3>
+  <dl class="message-properties">
+    <dt>Output 1: Control <span class="property-type">object</span></dt>
+    <dd><code>msg.payload</code> contains the lighting command (analog: <code>{ lighting: 0.0–100.0 }</code>,
+    digital: <code>{ lighting: "on"/"off" }</code>). <code>msg.topic = "actuators"</code>.</dd>
+
+    <dt>Output 2: Status <span class="property-type">object</span></dt>
+    <dd><code>msg.payload</code> contains <code>state</code>, <code>timestamp</code>, and optional
+    context fields. <code>msg.topic = "status"</code>. Emitted on every input.</dd>
+  </dl>
+
+  <h3>Status Messages</h3>
+  <p>Status messages are emitted on output 2 on every input, reflecting the current brightness and state:</p>
   <ul>
-    <li><strong>Output 1:</strong> Actuator command with formatted lighting value</li>
-    <li><strong>Output 2:</strong> Status message for the status aggregator</li>
+    <li><strong>idle</strong> — lighting is off (brightness = 0)</li>
+    <li><strong>active</strong> — lighting is on (includes <code>brightness</code> %, <code>mode</code>, <code>scheduleActive</code>)</li>
   </ul>
 </script>

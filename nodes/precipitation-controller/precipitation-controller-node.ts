@@ -21,6 +21,7 @@ interface PrecipitationControllerNodeDef extends NodeDef {
   interval: number;
   duration: number;
   tickInterval: number;
+  nightDisable: boolean;
 }
 
 interface PrecipitationState {
@@ -31,6 +32,7 @@ interface PrecipitationState {
   intervalMs: number;
   durationMs: number;
   night: boolean;
+  previousState: string | null;
 }
 
 // Format a millisecond duration to a human-readable string
@@ -45,7 +47,7 @@ const formatDuration = (ms: number): string => {
 };
 
 const precipitationController: NodeInitializer = (RED: NodeAPI) => {
-  function PrecipitationControllerNode(this: Node & { interval?: number; duration?: number; tickInterval?: number }, config: PrecipitationControllerNodeDef) {
+  function PrecipitationControllerNode(this: Node & { interval?: number; duration?: number; tickInterval?: number; nightDisable?: boolean }, config: PrecipitationControllerNodeDef) {
     RED.nodes.createNode(this, config);
     const node = this;
 
@@ -53,6 +55,7 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
     this.interval = parseFloat(config.interval as any) || 60;
     this.duration = parseFloat(config.duration as any) || 30;
     this.tickInterval = parseInt(config.tickInterval as any) || 60;
+    this.nightDisable = config.nightDisable || false;
 
     // Node state (in-memory only, resets on deploy/restart)
     const state: PrecipitationState = {
@@ -60,7 +63,27 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
       pumpActive: false,
       intervalMs: (node.interval || 60) * 60000,
       durationMs: (node.duration || 30) * 1000,
-      night: false
+      night: false,
+      previousState: null
+    };
+
+    // Emit a status message on output 2 only when the state changes
+    const emitStatus = (newState: string, optionalFields?: Record<string, any>) => {
+      if (newState === state.previousState) {
+        return;
+      }
+      state.previousState = newState;
+
+      const statusPayload: Record<string, any> = {
+        state: newState,
+        timestamp: Date.now()
+      };
+
+      if (optionalFields) {
+        Object.assign(statusPayload, optionalFields);
+      }
+
+      node.send([null, { payload: statusPayload, topic: 'status' }]);
     };
 
     // Evaluate whether precipitation is due and act accordingly
@@ -70,9 +93,10 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
         return;
       }
 
-      // If nighttime is signalled, skip
-      if (state.night) {
+      // If nighttime disable is enabled and it is night, skip
+      if (node.nightDisable && state.night) {
         node.status({ fill: 'grey', shape: 'ring', text: 'paused (night)' });
+        emitStatus('paused');
         return;
       }
 
@@ -83,24 +107,41 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
         // Turn pump on
         state.pumpActive = true;
         state.lastPrecipitation = now;
-        node.send({ payload: { pump: 'on' }, topic: 'actuators' });
 
         node.status({ fill: 'blue', shape: 'dot', text: `pump on (${formatDuration(state.durationMs)})` });
+
+        // Emit control and status together
+        state.previousState = 'active';
+        node.send([
+          { payload: { pump: 'on' }, topic: 'actuators' },
+          { payload: { state: 'active', timestamp: now, duration: state.durationMs }, topic: 'status' }
+        ]);
 
         // Schedule pump off
         state.offTimer = setTimeout(() => {
           state.pumpActive = false;
           state.offTimer = undefined;
-          node.send({ payload: { pump: 'off' }, topic: 'actuators' });
 
-          const timeStr = new Date().toLocaleTimeString('en-GB', { hour12: false });
+          const offNow = Date.now();
+          const timeStr = new Date(offNow).toLocaleTimeString('en-GB', { hour12: false });
           node.status({ fill: 'grey', shape: 'ring', text: `last: ${timeStr}` });
+
+          // Calculate remaining time for the waiting status
+          const remaining = state.intervalMs - (offNow - (state.lastPrecipitation || offNow));
+
+          // Emit control and status together
+          state.previousState = 'waiting';
+          node.send([
+            { payload: { pump: 'off' }, topic: 'actuators' },
+            { payload: { state: 'waiting', timestamp: offNow, remaining: Math.max(0, remaining) }, topic: 'status' }
+          ]);
         }, state.durationMs);
       } else {
         // Not yet due — show time remaining
         const elapsed = now - state.lastPrecipitation;
         const remaining = state.intervalMs - elapsed;
         node.status({ fill: 'green', shape: 'ring', text: `next in ${formatDuration(remaining)}` });
+        emitStatus('waiting', { remaining });
       }
     };
 
@@ -121,14 +162,16 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
     // Handle input messages (topic-based parameter updates)
     node.on('input', (msg: NodeMessageInFlow, send: (msg: any) => void, done: (err?: Error) => void) => {
       if (msg.topic === 'interval' && typeof msg.payload === 'number' && isFinite(msg.payload as number)) {
-        state.intervalMs = (msg.payload as number) * 60000;
-        node.log(`Interval updated: ${msg.payload} minutes`);
+        state.intervalMs = msg.payload as number;
+        node.log(`Interval updated: ${msg.payload}ms`);
       } else if (msg.topic === 'duration' && typeof msg.payload === 'number' && isFinite(msg.payload as number)) {
-        state.durationMs = (msg.payload as number) * 1000;
-        node.log(`Duration updated: ${msg.payload} seconds`);
+        state.durationMs = msg.payload as number;
+        node.log(`Duration updated: ${msg.payload}ms`);
       } else if (msg.topic === 'night' && typeof msg.payload === 'boolean') {
-        state.night = msg.payload;
-        node.log(`Night state updated: ${msg.payload}`);
+        if (node.nightDisable) {
+          state.night = msg.payload;
+          node.log(`Night state updated: ${msg.payload}`);
+        }
       }
 
       done?.();
@@ -146,13 +189,14 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
       }
       if (state.pumpActive) {
         state.pumpActive = false;
-        node.send({ payload: { pump: 'off' }, topic: 'actuators' });
+        node.send([{ payload: { pump: 'off' }, topic: 'actuators' }, null]);
       }
       done();
     });
 
     // Initial status
     node.status({ fill: 'grey', shape: 'ring', text: 'idle' });
+    emitStatus('idle');
 
     // Start the tick timer
     startTickInterval();

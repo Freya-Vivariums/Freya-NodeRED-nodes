@@ -28,6 +28,20 @@ interface TemperatureControllerNodeDef extends NodeDef {
   watchdogSeverity: 'warning' | 'error';
 }
 
+/*
+ * Status output states (output 2):
+ *   "idle"    — at target or awaiting inputs
+ *   "heating" — heater is active
+ *   "cooling" — cooler is active
+ *   "error"   — open-loop mode (watchdog triggered)
+ *
+ * Optional fields:
+ *   target         (number)  — target temperature (°C)
+ *   reading        (number)  — current sensor reading (°C)
+ *   deadband       (number)  — configured deadband (°C)
+ *   safetyOverride (string|null) — "minimum temperature" / "maximum temperature" if active
+ */
+
 interface ControllerState {
   targetTemperature?: number;
   currentTemperature?: number;
@@ -35,6 +49,7 @@ interface ControllerState {
   safetyOverride?: 'min' | 'max' | null;
   watchdogTimer?: NodeJS.Timeout;
   openLoopMode: boolean;
+  previousStatusState: string | null;
 }
 
 const temperatureController: NodeInitializer = (RED: NodeAPI) => {
@@ -53,7 +68,27 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
     const state: ControllerState = {
       currentState: 'idle',
       safetyOverride: null,
-      openLoopMode: false
+      openLoopMode: false,
+      previousStatusState: null
+    };
+
+    // Emit a status message on output 2 only when the state changes
+    const emitStatus = (newState: string, optionalFields?: Record<string, any>) => {
+      if (newState === state.previousStatusState) {
+        return null;
+      }
+      state.previousStatusState = newState;
+
+      const statusPayload: Record<string, any> = {
+        state: newState,
+        timestamp: Date.now()
+      };
+
+      if (optionalFields) {
+        Object.assign(statusPayload, optionalFields);
+      }
+
+      return { payload: statusPayload, topic: 'status' };
     };
 
     // Watchdog functions
@@ -67,6 +102,7 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
         state.openLoopMode = true;
         
         // Send safe state (all actuators off) and status
+        state.previousStatusState = 'error';
         node.send([
           {
             payload: {
@@ -77,10 +113,10 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
           },
           {
             payload: {
+              state: 'error',
+              timestamp: Date.now(),
               severity: node.watchdogSeverity,
-              message: `No sensor feedback for ${node.watchdogTimeout}s`,
-              state: 'open-loop',
-              timestamp: new Date().toISOString()
+              message: `No sensor feedback for ${node.watchdogTimeout}s`
             },
             topic: 'status'
           }
@@ -181,7 +217,15 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
     // Execute control loop - called on every sensor update
     const _executeControlLoop = () => {
       const control = calculateControl();
-      
+
+      // Build status message (only emitted on state change)
+      const statusMsg = emitStatus(control.state, {
+        target: state.targetTemperature,
+        reading: state.currentTemperature,
+        deadband: this.deadband,
+        safetyOverride: control.override || null
+      });
+
       // Send actuator commands
       node.send([
         {
@@ -191,17 +235,7 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
           },
           topic: 'actuators'
         },
-        {
-          payload: {
-            state: control.state,
-            target: state.targetTemperature,
-            reading: state.currentTemperature,
-            safetyOverride: control.override || null,
-            deadband: this.deadband,
-            openLoopMode: state.openLoopMode
-          },
-          topic: 'status'
-        }
+        statusMsg
       ]);
       
       updateStatus(control);
@@ -256,6 +290,7 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
 
     // Initial status
     node.status({ fill: 'yellow', shape: 'dot', text: 'awaiting inputs' });
+    emitStatus('idle');
   }
 
   RED.nodes.registerType('temperature controller', TemperatureControllerNode);

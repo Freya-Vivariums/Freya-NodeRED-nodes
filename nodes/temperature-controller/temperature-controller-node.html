@@ -29,7 +29,7 @@
     },
     inputs:1,
     outputs:2,
-    outputLabels:["actuator commands", "status"],
+    outputLabels:["control (actuators)", "status"],
     icon: "font-awesome/fa-thermometer-half",
     label: function() {
       return this.name||"Temperature Controller";
@@ -97,10 +97,15 @@
   </dl>
   
   <h3>Outputs</h3>
-  <ul>
-    <li><strong>Output 1 (Actuators):</strong> <code>msg.payload</code> (object) - actuator commands: <code>{ heater: "on/off", cooler: "on/off" }</code></li>
-    <li><strong>Output 2 (Status):</strong> Status information for aggregation</li>
-  </ul>
+  <dl class="message-properties">
+    <dt>Output 1: Control <span class="property-type">object</span></dt>
+    <dd><code>msg.payload</code> is <code>{ heater: "on"/"off", cooler: "on"/"off" }</code>
+    with <code>msg.topic = "actuators"</code>.</dd>
+
+    <dt>Output 2: Status <span class="property-type">object</span></dt>
+    <dd><code>msg.payload</code> contains <code>state</code>, <code>timestamp</code>, and optional
+    context fields. <code>msg.topic = "status"</code>. Emitted only on state changes.</dd>
+  </dl>
   
   <h3>Control Logic</h3>
   <ul>
@@ -121,5 +126,14 @@
     <li><strong>Open-Loop Mode:</strong> Enters safe state (all actuators off) if no sensor feedback within timeout</li>
     <li><strong>Auto Recovery:</strong> Resumes normal control immediately when sensor returns</li>
     <li><strong>Status Alerts:</strong> Emits configurable severity alerts on watchdog trigger</li>
+  </ul>
+
+  <h3>Status Messages</h3>
+  <p>Status messages are emitted on output 2 only when the state changes:</p>
+  <ul>
+    <li><strong>idle</strong> — at target or awaiting inputs</li>
+    <li><strong>heating</strong> — heater is active (includes <code>target</code>, <code>reading</code>, <code>deadband</code>, <code>safetyOverride</code>)</li>
+    <li><strong>cooling</strong> — cooler is active (includes <code>target</code>, <code>reading</code>, <code>deadband</code>, <code>safetyOverride</code>)</li>
+    <li><strong>error</strong> — open-loop mode, watchdog triggered (includes <code>severity</code>, <code>message</code>)</li>
   </ul>
 </script>

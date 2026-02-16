@@ -27,6 +27,17 @@ interface LightingControllerNodeDef extends NodeDef {
   scheduleMode: 'allowed' | 'guaranteed';
 }
 
+/*
+ * Status output states (output 2):
+ *   "idle"   — lighting is off (brightness = 0)
+ *   "active" — lighting is on (brightness > 0)
+ *
+ * Optional fields:
+ *   brightness    (number)  — final output percentage (0-100)
+ *   mode          (string)  — "analog" or "digital"
+ *   scheduleActive (boolean) — true if schedule gate is currently overriding
+ */
+
 const lightingController: NodeInitializer = (RED: NodeAPI) => {
   function LightingControllerNode(this: Node & { 
     gain?: number; 
@@ -46,6 +57,20 @@ const lightingController: NodeInitializer = (RED: NodeAPI) => {
     this.scheduleTime1 = config.scheduleTime1 || '';
     this.scheduleTime2 = config.scheduleTime2 || '';
     this.scheduleMode = config.scheduleMode || 'allowed';
+
+    // Build a status message for output 2
+    const buildStatus = (currentState: string, optionalFields?: Record<string, any>) => {
+      const statusPayload: Record<string, any> = {
+        state: currentState,
+        timestamp: Date.now()
+      };
+
+      if (optionalFields) {
+        Object.assign(statusPayload, optionalFields);
+      }
+
+      return { payload: statusPayload, topic: 'status' };
+    };
 
     // Helper function to check if current time is within schedule
     const isWithinSchedule = (): boolean => {
@@ -167,10 +192,18 @@ const lightingController: NodeInitializer = (RED: NodeAPI) => {
         }
       }
 
+      // Build status message (emitted on every input with current state)
+      const currentState = finalValue > 0 ? 'active' : 'idle';
+      const statusMsg = buildStatus(currentState, {
+        brightness: finalValue,
+        mode: this.mode,
+        scheduleActive
+      });
+
       // Send output messages
       send([
-        { payload: outputPayload, topic: 'actuators' }, // Output 1: actuator command
-        { payload: { ...outputPayload, scheduleActive, gain: this.gain, bottomCutOff: this.bottomCutOff, mode: this.mode }, topic: 'status' } // Output 2: status for status aggregator
+        { payload: outputPayload, topic: 'actuators' },
+        statusMsg
       ]);
 
       done?.();
