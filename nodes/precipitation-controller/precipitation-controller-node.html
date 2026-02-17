@@ -23,8 +23,7 @@
       name: {value:""},
       interval: {value: 60, required: true, validate: RED.validators.number()},
       duration: {value: 30, required: true, validate: RED.validators.number()},
-      tickInterval: {value: 60, required: true, validate: function(v) { return RED.validators.number()(v) && parseInt(v) >= 1; }},
-      nightDisable: {value: false}
+      tickInterval: {value: 60, required: true, validate: function(v) { return RED.validators.number()(v) && parseInt(v) >= 1; }}
     },
     inputs:1,
     outputs:2,
@@ -56,11 +55,6 @@
     <label for="node-input-tickInterval"><i class="fa fa-clock-o"></i> Tick Interval (seconds)</label>
     <input type="number" id="node-input-tickInterval" placeholder="60" step="1" min="1">
   </div>
-  <hr/>
-  <div class="form-row">
-    <input type="checkbox" id="node-input-nightDisable" style="display:inline-block; width:auto; vertical-align:top;">
-    <label for="node-input-nightDisable" style="width:auto;"><i class="fa fa-moon-o"></i> Disable precipitation at night</label>
-  </div>
 </script>
 
 <script type="text/html" data-help-name="precipitation controller">
@@ -70,14 +64,19 @@
   <h3>Input</h3>
   <dl class="message-properties">
     <dt>msg.topic = "interval" <span class="property-type">number</span></dt>
-    <dd><code>msg.payload</code> sets the precipitation interval in milliseconds, overriding the configured default</dd>
+    <dd><code>msg.payload</code> sets the precipitation interval in minutes, overriding the configured default</dd>
 
     <dt>msg.topic = "duration" <span class="property-type">number</span></dt>
-    <dd><code>msg.payload</code> sets the pump duration in milliseconds, overriding the configured default</dd>
+    <dd><code>msg.payload</code> sets the pump duration in seconds, overriding the configured default</dd>
+
+    <dt>msg.topic = "nightDisable" <span class="property-type">boolean</span></dt>
+    <dd><code>msg.payload</code> enables (<code>true</code>) or disables (<code>false</code>) the
+    nighttime pause feature at runtime. Defaults to <code>false</code> on deploy.
+    Switching from <code>true</code> to <code>false</code> while paused resumes normal operation immediately.</dd>
 
     <dt>msg.topic = "night" <span class="property-type">boolean</span></dt>
     <dd><code>msg.payload</code> signals nighttime (<code>true</code>) or daytime (<code>false</code>).
-    Only effective when the nighttime disable toggle is enabled in the editor.
+    Only effective when nighttime disable has been enabled via the <code>nightDisable</code> topic.
     During nighttime no new precipitation events are started. If the pump is already active
     when night begins, the current cycle finishes normally.</dd>
   </dl>
@@ -110,11 +109,12 @@
   to prevent it from getting stuck on.</p>
 
   <h3>Nighttime Disable</h3>
-  <p>When the nighttime disable toggle is enabled, the node tracks a night/day state
-  updated via <code>msg.topic = "night"</code>. During nighttime no new precipitation events
-  are started. If the pump is already active when night begins, the current cycle is
-  allowed to finish normally. When the toggle is off, night messages are ignored and
-  precipitation runs 24/7.</p>
+  <p>The nighttime disable feature is controlled at runtime via <code>msg.topic = "nightDisable"</code>.
+  On deploy it defaults to off (precipitation runs 24/7). When enabled, the node tracks a
+  night/day state updated via <code>msg.topic = "night"</code>. During nighttime no new
+  precipitation events are started. If the pump is already active when night begins, the
+  current cycle is allowed to finish normally. Switching nighttime disable off while paused
+  causes the node to resume normal tick evaluation immediately.</p>
 
   <h3>Status Messages</h3>
   <p>Status messages are emitted on output 2 only when the state changes:</p>
@@ -130,7 +130,6 @@
     <li><strong>Interval:</strong> Time between precipitation events in minutes (default: 60)</li>
     <li><strong>Duration:</strong> How long the pump runs per event in seconds (default: 30)</li>
     <li><strong>Tick Interval:</strong> How often to evaluate whether precipitation is due in seconds (default: 60)</li>
-    <li><strong>Disable precipitation at night:</strong> When enabled, precipitation is paused during nighttime</li>
   </ul>
 
   <h3>Node Status</h3>

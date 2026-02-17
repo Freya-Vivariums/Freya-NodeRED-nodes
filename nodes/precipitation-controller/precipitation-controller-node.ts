@@ -21,7 +21,6 @@ interface PrecipitationControllerNodeDef extends NodeDef {
   interval: number;
   duration: number;
   tickInterval: number;
-  nightDisable: boolean;
 }
 
 interface PrecipitationState {
@@ -31,6 +30,7 @@ interface PrecipitationState {
   tickTimerId?: any;
   intervalMs: number;
   durationMs: number;
+  nightDisable: boolean;
   night: boolean;
   previousState: string | null;
 }
@@ -47,7 +47,7 @@ const formatDuration = (ms: number): string => {
 };
 
 const precipitationController: NodeInitializer = (RED: NodeAPI) => {
-  function PrecipitationControllerNode(this: Node & { interval?: number; duration?: number; tickInterval?: number; nightDisable?: boolean }, config: PrecipitationControllerNodeDef) {
+  function PrecipitationControllerNode(this: Node & { interval?: number; duration?: number; tickInterval?: number }, config: PrecipitationControllerNodeDef) {
     RED.nodes.createNode(this, config);
     const node = this;
 
@@ -55,7 +55,6 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
     this.interval = parseFloat(config.interval as any) || 60;
     this.duration = parseFloat(config.duration as any) || 30;
     this.tickInterval = parseInt(config.tickInterval as any) || 60;
-    this.nightDisable = config.nightDisable || false;
 
     // Node state (in-memory only, resets on deploy/restart)
     const state: PrecipitationState = {
@@ -63,6 +62,7 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
       pumpActive: false,
       intervalMs: (node.interval || 60) * 60000,
       durationMs: (node.duration || 30) * 1000,
+      nightDisable: false,
       night: false,
       previousState: null
     };
@@ -94,7 +94,7 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
       }
 
       // If nighttime disable is enabled and it is night, skip
-      if (node.nightDisable && state.night) {
+      if (state.nightDisable && state.night) {
         node.status({ fill: 'grey', shape: 'ring', text: 'paused (night)' });
         emitStatus('paused');
         return;
@@ -162,16 +162,22 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
     // Handle input messages (topic-based parameter updates)
     node.on('input', (msg: NodeMessageInFlow, send: (msg: any) => void, done: (err?: Error) => void) => {
       if (msg.topic === 'interval' && typeof msg.payload === 'number' && isFinite(msg.payload as number)) {
-        state.intervalMs = msg.payload as number;
-        node.log(`Interval updated: ${msg.payload}ms`);
+        state.intervalMs = (msg.payload as number) * 60000;
+        node.log(`Interval updated: ${msg.payload} minutes`);
       } else if (msg.topic === 'duration' && typeof msg.payload === 'number' && isFinite(msg.payload as number)) {
-        state.durationMs = msg.payload as number;
-        node.log(`Duration updated: ${msg.payload}ms`);
-      } else if (msg.topic === 'night' && typeof msg.payload === 'boolean') {
-        if (node.nightDisable) {
-          state.night = msg.payload;
-          node.log(`Night state updated: ${msg.payload}`);
+        state.durationMs = (msg.payload as number) * 1000;
+        node.log(`Duration updated: ${msg.payload} seconds`);
+      } else if (msg.topic === 'nightDisable' && typeof msg.payload === 'boolean') {
+        const wasEnabled = state.nightDisable;
+        state.nightDisable = msg.payload;
+        node.log(`Nighttime disable updated: ${msg.payload}`);
+        // If nightDisable was just switched off while paused, resume immediately
+        if (wasEnabled && !msg.payload && state.night && !state.pumpActive) {
+          evaluatePrecipitation();
         }
+      } else if (msg.topic === 'night' && typeof msg.payload === 'boolean') {
+        state.night = msg.payload;
+        node.log(`Night state updated: ${msg.payload}`);
       }
 
       done?.();
