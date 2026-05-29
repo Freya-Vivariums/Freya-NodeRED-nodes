@@ -1,4 +1,4 @@
-name: Publish Node-RED node
+name: Publish Node-RED nodes
 
 on:
   release:
@@ -26,6 +26,6 @@ jobs:
 
       - name: Publish to npm
         working-directory: build
-        run: npm publish
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
