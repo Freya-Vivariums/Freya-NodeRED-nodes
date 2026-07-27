@@ -104,13 +104,8 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
         // Send safe state (all actuators off) and status
         state.previousStatusState = 'error';
         node.send([
-          {
-            payload: {
-              heater: 'off',
-              cooler: 'off'
-            },
-            topic: 'actuators'
-          },
+          { payload: false, topic: 'heater' },
+          { payload: false, topic: 'cooler' },
           {
             payload: {
               state: 'error',
@@ -226,15 +221,11 @@ const temperatureController: NodeInitializer = (RED: NodeAPI) => {
         safetyOverride: control.override || null
       });
 
-      // Send actuator commands
+      // Send actuator commands as scalars: output 1 = heater, output 2 = cooler,
+      // output 3 = status. Each actuator output feeds one Digital Output node.
       node.send([
-        {
-          payload: {
-            heater: control.heater,
-            cooler: control.cooler
-          },
-          topic: 'actuators'
-        },
+        { payload: control.heater === 'on', topic: 'heater' },
+        { payload: control.cooler === 'on', topic: 'cooler' },
         statusMsg
       ]);
       

@@ -159,16 +159,17 @@ const lightingController: NodeInitializer = (RED: NodeAPI) => {
         }
       }
 
-      // Format output based on mode
-      let outputPayload: any;
+      // Format output based on mode. The Digital Output node expects a scalar:
+      // a boolean (on/off) or a number 0.0-1.0 (setpoint).
+      let outputPayload: number | boolean;
       let statusText: string;
       
       // Calculate the final processed value for status display
       const finalValue = Math.round(value * 10) / 10; // Round to 1 decimal
       
       if (this.mode === 'digital') {
-        // Digital mode: { lighting: "on" } if value > 0, else { lighting: "off" }
-        outputPayload = { lighting: value > 0 ? 'on' : 'off' };
+        // Digital mode: boolean on/off
+        outputPayload = value > 0;
         
         // Update node status - show digital state and final processed percentage
         if (value > 0) {
@@ -179,8 +180,8 @@ const lightingController: NodeInitializer = (RED: NodeAPI) => {
           node.status({ fill: 'grey', shape: 'dot', text: statusText });
         }
       } else {
-        // Analog mode: { lighting: <float 0.0-100.0> } (1 decimal)
-        outputPayload = { lighting: finalValue };
+        // Analog mode: setpoint as a fraction 0.0-1.0 (percentage / 100)
+        outputPayload = finalValue / 100;
         
         // Update node status with final processed percentage
         if (finalValue > 0) {
@@ -200,9 +201,9 @@ const lightingController: NodeInitializer = (RED: NodeAPI) => {
         scheduleActive
       });
 
-      // Send output messages
+      // Send output messages: output 1 = lighting setpoint, output 2 = status
       send([
-        { payload: outputPayload, topic: 'actuators' },
+        { payload: outputPayload, topic: 'lighting' },
         statusMsg
       ]);
 

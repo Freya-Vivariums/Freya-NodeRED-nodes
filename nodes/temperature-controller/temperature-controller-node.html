@@ -28,8 +28,8 @@
       watchdogSeverity: {value:"warning", required:true}
     },
     inputs:1,
-    outputs:2,
-    outputLabels:["control (actuators)", "status"],
+    outputs:3,
+    outputLabels:["heater", "cooler", "status"],
     icon: "font-awesome/fa-thermometer-half",
     label: function() {
       return this.name||"Temperature Controller";
@@ -98,11 +98,13 @@
   
   <h3>Outputs</h3>
   <dl class="message-properties">
-    <dt>Output 1: Control <span class="property-type">object</span></dt>
-    <dd><code>msg.payload</code> is <code>{ heater: "on"/"off", cooler: "on"/"off" }</code>
-    with <code>msg.topic = "actuators"</code>.</dd>
+    <dt>Output 1: Heater <span class="property-type">boolean</span></dt>
+    <dd><code>msg.payload</code> is <code>true</code>/<code>false</code> for a Digital Output node. <code>msg.topic = "heater"</code>.</dd>
 
-    <dt>Output 2: Status <span class="property-type">object</span></dt>
+    <dt>Output 2: Cooler <span class="property-type">boolean</span></dt>
+    <dd><code>msg.payload</code> is <code>true</code>/<code>false</code> for a Digital Output node. <code>msg.topic = "cooler"</code>.</dd>
+
+    <dt>Output 3: Status <span class="property-type">object</span></dt>
     <dd><code>msg.payload</code> contains <code>state</code>, <code>timestamp</code>, and optional
     context fields. <code>msg.topic = "status"</code>. Emitted only on state changes.</dd>
   </dl>

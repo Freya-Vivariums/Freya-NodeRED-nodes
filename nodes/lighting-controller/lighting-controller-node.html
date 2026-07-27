@@ -30,7 +30,7 @@
     },
     inputs:1,
     outputs:2,
-    outputLabels:["control (actuators)", "status"],
+    outputLabels:["lighting", "status"],
     icon: "font-awesome/fa-lightbulb-o",
     label: function() {
       return this.name || "Lighting Controller";
@@ -107,8 +107,8 @@
     <li><strong>Gain:</strong> Multiplier applied to input after bottom cut-off. Values above 100% are clipped to 100%.</li>
     <li><strong>Output Mode:</strong> 
       <ul>
-        <li><strong>Analog:</strong> Outputs { lighting: &lt;float 0.0-100.0&gt; } with 1 decimal place</li>
-        <li><strong>Digital:</strong> Outputs { lighting: "on" } if value > 0, else { lighting: "off" }</li>
+        <li><strong>Analog:</strong> Outputs a number setpoint <code>0.0&ndash;1.0</code> (percentage / 100)</li>
+        <li><strong>Digital:</strong> Outputs a boolean (<code>true</code> if value &gt; 0, else <code>false</code>)</li>
       </ul>
     </li>
     <li><strong>Schedule (Optional):</strong> Restrict lighting to specific time windows
@@ -140,9 +140,9 @@
   
   <h3>Outputs</h3>
   <dl class="message-properties">
-    <dt>Output 1: Control <span class="property-type">object</span></dt>
-    <dd><code>msg.payload</code> contains the lighting command (analog: <code>{ lighting: 0.0–100.0 }</code>,
-    digital: <code>{ lighting: "on"/"off" }</code>). <code>msg.topic = "actuators"</code>.</dd>
+    <dt>Output 1: Lighting <span class="property-type">number | boolean</span></dt>
+    <dd><code>msg.payload</code> is the setpoint for a Digital Output node (analog: a number <code>0.0&ndash;1.0</code>,
+    digital: a boolean). <code>msg.topic = "lighting"</code>.</dd>
 
     <dt>Output 2: Status <span class="property-type">object</span></dt>
     <dd><code>msg.payload</code> contains <code>state</code>, <code>timestamp</code>, and optional

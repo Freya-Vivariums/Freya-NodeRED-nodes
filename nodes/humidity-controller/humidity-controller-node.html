@@ -28,8 +28,8 @@
       watchdogSeverity: {value: "warning", required: true}
     },
     inputs:1,
-    outputs:2,
-    outputLabels:["control (actuators)", "status"],
+    outputs:3,
+    outputLabels:["humidifier", "dehumidifier", "status"],
     icon: "font-awesome/fa-tint",
     label: function() {
       return this.name || "Humidity Controller";
@@ -125,11 +125,13 @@
   
   <h3>Outputs</h3>
   <dl class="message-properties">
-    <dt>Output 1: Control <span class="property-type">object</span></dt>
-    <dd><code>msg.payload</code> is <code>{ humidifier: "on"/"off", dehumidifier: "on"/"off" }</code>
-    with <code>msg.topic = "actuators"</code>.</dd>
+    <dt>Output 1: Humidifier <span class="property-type">boolean</span></dt>
+    <dd><code>msg.payload</code> is <code>true</code>/<code>false</code> for a Digital Output node. <code>msg.topic = "humidifier"</code>.</dd>
 
-    <dt>Output 2: Status <span class="property-type">object</span></dt>
+    <dt>Output 2: Dehumidifier <span class="property-type">boolean</span></dt>
+    <dd><code>msg.payload</code> is <code>true</code>/<code>false</code> for a Digital Output node. <code>msg.topic = "dehumidifier"</code>.</dd>
+
+    <dt>Output 3: Status <span class="property-type">object</span></dt>
     <dd><code>msg.payload</code> contains <code>state</code>, <code>timestamp</code>, and optional
     context fields. <code>msg.topic = "status"</code>. Emitted only on state changes.</dd>
   </dl>

@@ -84,13 +84,8 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
         // Send safe state (all actuators off) and status
         state.previousStatusState = 'error';
         node.send([
-          {
-            payload: {
-              humidifier: 'off',
-              dehumidifier: 'off'
-            },
-            topic: 'actuators'
-          },
+          { payload: false, topic: 'humidifier' },
+          { payload: false, topic: 'dehumidifier' },
           {
             payload: {
               state: 'error',
@@ -206,15 +201,12 @@ const humidityController: NodeInitializer = (RED: NodeAPI) => {
         safetyOverride: control.override || null
       });
 
-      // Send actuator commands
+      // Send actuator commands as scalars: output 1 = humidifier,
+      // output 2 = dehumidifier, output 3 = status. Each actuator output feeds
+      // one Digital Output node.
       node.send([
-        {
-          payload: {
-            humidifier: control.humidifier,
-            dehumidifier: control.dehumidifier
-          },
-          topic: 'actuators'
-        },
+        { payload: control.humidifier === 'on', topic: 'humidifier' },
+        { payload: control.dehumidifier === 'on', topic: 'dehumidifier' },
         statusMsg
       ]);
       

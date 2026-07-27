@@ -113,7 +113,7 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
         // Emit control and status together
         state.previousState = 'active';
         node.send([
-          { payload: { pump: 'on' }, topic: 'actuators' },
+          { payload: true, topic: 'pump' },
           { payload: { state: 'active', timestamp: now, duration: state.durationMs }, topic: 'status' }
         ]);
 
@@ -132,7 +132,7 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
           // Emit control and status together
           state.previousState = 'waiting';
           node.send([
-            { payload: { pump: 'off' }, topic: 'actuators' },
+            { payload: false, topic: 'pump' },
             { payload: { state: 'waiting', timestamp: offNow, remaining: Math.max(0, remaining) }, topic: 'status' }
           ]);
         }, state.durationMs);
@@ -195,7 +195,7 @@ const precipitationController: NodeInitializer = (RED: NodeAPI) => {
       }
       if (state.pumpActive) {
         state.pumpActive = false;
-        node.send([{ payload: { pump: 'off' }, topic: 'actuators' }, null]);
+        node.send([{ payload: false, topic: 'pump' }, null]);
       }
       done();
     });

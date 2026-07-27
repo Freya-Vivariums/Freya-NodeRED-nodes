@@ -28,7 +28,7 @@
     inputs:1,
     outputs:2,
     inputLabels:["parameter update"],
-    outputLabels:["control (actuators)", "status"],
+    outputLabels:["pump", "status"],
     icon: "font-awesome/fa-tint",
     label: function() {
       return this.name || "Precipitation Controller";
@@ -84,9 +84,9 @@
 
   <h3>Outputs</h3>
   <dl class="message-properties">
-    <dt>Output 1: Control <span class="property-type">object</span></dt>
-    <dd><code>msg.payload</code> is <code>{ pump: "on" }</code> or <code>{ pump: "off" }</code>
-    with <code>msg.topic = "actuators"</code>. Two messages are sent per precipitation event.</dd>
+    <dt>Output 1: Pump <span class="property-type">boolean</span></dt>
+    <dd><code>msg.payload</code> is <code>true</code> (on) or <code>false</code> (off) for a Digital Output node,
+    with <code>msg.topic = "pump"</code>. One message is sent at the start and end of each precipitation event.</dd>
 
     <dt>Output 2: Status <span class="property-type">object</span></dt>
     <dd><code>msg.payload</code> contains <code>state</code>, <code>timestamp</code>, and optional
