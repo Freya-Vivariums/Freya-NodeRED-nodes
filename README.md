@@ -6,7 +6,7 @@
 
 <br clear="right"/>
 
-[![Node-RED](https://img.shields.io/badge/Node--RED-Freya-%23A2CA6F?logo=nodered)](https://flows.nodered.org/node/node-red-contrib-freya-nodes)
+[![Node-RED](https://img.shields.io/badge/Node--RED-Freya-%23A2CA6F?logo=nodered)](https://flows.nodered.org/node/@freya-vivariums/freya-logic-nodes-node-red-contrib)
 
 ## Installation
 #### Node-RED flow editor
