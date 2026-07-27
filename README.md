@@ -15,7 +15,7 @@ Navigate to `Settings > Manage Palette`, then in the `Install` tab, search for `
 #### Manually using NPM
 On your device, navigate to the `nodered` folder (on a Freya system, it's at `/opt/Freya/`), and run
 ```
-npm install node-red-contrib-freya-nodes
+npm install freya-vivariums/freya-logic-nodes-node-red-contrib
 ```
 
 ## License & Collaboration
