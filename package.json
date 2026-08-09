@@ -1,6 +1,6 @@
 {
   "name": "@freya-vivariums/freya-logic-nodes-node-red-contrib",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Node-RED logic nodes for the Freya Vivarium Control System",
   "author": "Sanne 'SpuQ' Santens",
   "license": "GPL-3.0",
