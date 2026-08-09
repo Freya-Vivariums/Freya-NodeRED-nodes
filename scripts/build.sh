@@ -21,4 +21,12 @@ rsync -av --include='*/' --include='*.html' --exclude='*' nodes/ ${BUILD_DIR}/no
 # Copy all required files to the build folder
 cp -r icons/ package.json README.md LICENSE.txt ${BUILD_DIR}/;
 
+# The source package.json has a prepublishOnly guard that prevents publishing
+# from the repository root (which would ship .ts source files). Remove that guard
+# from the build artifact so npm publish --access public can run from build/.
+if command -v jq >/dev/null 2>&1; then
+    jq 'del(.scripts.prepublishOnly)' ${BUILD_DIR}/package.json > ${BUILD_DIR}/package.json.tmp
+    mv ${BUILD_DIR}/package.json.tmp ${BUILD_DIR}/package.json
+fi
+
 exit 0;

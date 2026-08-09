@@ -22,7 +22,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "bash ./scripts/build.sh",
-    "deploy": "bash ./scripts/deploy.sh && rm -rf build/"
+    "deploy": "bash ./scripts/deploy.sh && rm -rf build/",
+    "prepublishOnly": "node -e \"console.error('Publish from the build/ directory after running npm run build'); process.exit(1)\""
   },
   "node-red": {
     "version": ">=4.0.9",
